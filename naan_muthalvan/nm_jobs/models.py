@@ -12,14 +12,14 @@ class Jobs(models.Model):
     work_type = models.CharField(max_length = 100)
     location = models.CharField(max_length = 100)
     posted_by = models.CharField(max_length = 100)
-    phone_no = models.BigIntegerField()
-    email = models.CharField(max_length = 200)
+    phone_no = models.BigIntegerField(unique= True)
+    email = models.EmailField(max_length = 200, unique=True)
 
     def __str__(self) -> str:
         return str(self.job_id)
 
 class JobDetails(models.Model):
-    job_id = models.ForeignKey(Jobs, on_delete = models.CASCADE)
+    job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE, primary_key=True)
     date_range = models.CharField(max_length = 100)
     currency = models.CharField(max_length = 100)
     max_salary = models.BigIntegerField()
@@ -29,19 +29,19 @@ class JobDetails(models.Model):
     def __str__(self) -> str:
         return str(self.job_id)
 
-class AddOns(models.Model):
-    job_id = models.ForeignKey(Jobs, on_delete = models.CASCADE)
-    perk_id = models.IntegerField()
-
-    def __str__(self) -> str:
-        return str(self.perk_id)
-
 class Perks(models.Model):
-    perk_id = models.ForeignKey(AddOns, on_delete = models.CASCADE)
+    perk_id = models.IntegerField(primary_key= True)
     perks = models.CharField(max_length= 300)
 
     def __str__(self) -> str:
         return str(self.perk_id)
+
+class AddOns(models.Model):
+    job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE, primary_key=True)
+    perk_id = models.ForeignKey(Perks, on_delete=models.CASCADE)
+
+    def __str__(self) -> str:
+        return str(self.job_id)
 
 class Company(models.Model):
     company_id = models.IntegerField(primary_key = True)
@@ -56,7 +56,7 @@ class CompanySector(models.Model):
     company_id = models.ForeignKey(Company, on_delete = models.CASCADE)
 
 class Sector(models.Model):
-    sector_id = models.ForeignKey(CompanySector, on_delete= models.CASCADE)
+    sector_id = models.OneToOneField(CompanySector, on_delete= models.CASCADE, primary_key=True)
     industry = models.CharField(max_length = 100)
     department = models.CharField(max_length = 100)
     
@@ -64,31 +64,30 @@ class Sector(models.Model):
         return str(self.sector_id)
 
 class Internship(models.Model):
-    job_id = models.ForeignKey(Jobs, on_delete = models.CASCADE)
+    job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE, primary_key=True)
     stipend = models.CharField(max_length = 20)
     date_range = models.CharField(max_length = 100)
     duration = models.IntegerField()
     currency = models.CharField(max_length = 100)
-    salary = models.BigIntegerField()
 
     def __str__(self) -> str:
         return str(self.job_id)
 
 class Status(models.Model):
-    job_id = models.ForeignKey(Jobs, on_delete = models.CASCADE)
+    job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE, primary_key= True)
     date_posted = models.DateTimeField()
     to_date = models.DateTimeField()
     application_received = models.IntegerField()
-    company_id = models.ForeignKey(Company, on_delete= models.CASCADE)
+    company_id = models.ForeignKey(Company, on_delete=models.CASCADE)
 
     def __str__(self) -> str:
         return str(self.job_id)
 
 class Spoc(models.Model):
-    company_id = models.ForeignKey(Company, on_delete=models.CASCADE)
+    company_id = models.OneToOneField(Company, on_delete=models.CASCADE, primary_key= True)
     name = models.CharField(max_length = 100)
-    phone_no = models.BigIntegerField()
-    email = models.CharField(max_length = 200)
+    phone_no = models.BigIntegerField(unique=True)
+    email = models.EmailField(max_length = 200, unique=True)
     
     def __str__(self) -> str:
         return str(self.company_id)
@@ -108,6 +107,3 @@ class Spoc(models.Model):
 
 #     def __str__(self) -> str:
 #         return str(self.company_id)
-
-    
-    
