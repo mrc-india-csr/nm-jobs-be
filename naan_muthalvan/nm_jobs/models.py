@@ -37,7 +37,7 @@ class Perks(models.Model):
         return str(self.perk_id)
 
 class AddOns(models.Model):
-    job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE, primary_key=True)
+    job_id = models.ForeignKey(Jobs, on_delete = models.CASCADE)
     perk_id = models.ForeignKey(Perks, on_delete=models.CASCADE)
 
     def __str__(self) -> str:
@@ -51,17 +51,21 @@ class Company(models.Model):
     def __str__(self) -> str:
         return str(self.company_id)
 
-class CompanySector(models.Model):
-    sector_id = models.IntegerField(primary_key = True)
-    company_id = models.ForeignKey(Company, on_delete = models.CASCADE)
 
 class Sector(models.Model):
-    sector_id = models.OneToOneField(CompanySector, on_delete= models.CASCADE, primary_key=True)
+    sector_id = models.IntegerField(primary_key = True)
     industry = models.CharField(max_length = 100)
     department = models.CharField(max_length = 100)
     
     def __str__(self) -> str:
         return str(self.sector_id)
+
+class CompanySector(models.Model):
+    sector_id = models.ForeignKey(Sector, on_delete= models.CASCADE)
+    company_id = models.ForeignKey(Company, on_delete = models.CASCADE)
+
+    def __str__(self) -> str:
+        return str(self.company_id)
 
 class Internship(models.Model):
     job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE, primary_key=True)
@@ -74,7 +78,7 @@ class Internship(models.Model):
         return str(self.job_id)
 
 class Status(models.Model):
-    job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE, primary_key= True)
+    job_id = models.OneToOneField(JobDetails, on_delete = models.CASCADE, primary_key= True)
     date_posted = models.DateTimeField()
     to_date = models.DateTimeField()
     application_received = models.IntegerField()
