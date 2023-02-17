@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from nm_jobs.models import Perks, Jobs, Company
+from rest_framework.fields import CharField, EmailField
+from nm_jobs.models import Perks, Jobs, Company, TestModelId
 
 class CompanySerializers(serializers.ModelSerializer):
     class Meta:
@@ -15,4 +16,10 @@ class JobsSerializer(serializers.ModelSerializer):
 class PerksSerializer(serializers.ModelSerializer):
     class Meta:
         model = Perks
-        fields = (["perks"])
+        fields = ("perk_id","perks",)
+
+class TestModelIdSerializer(serializers.ModelSerializer):
+    name = CharField(required = True)
+    class Meta:
+        model = TestModelId
+        fields = ('id','name','email')
