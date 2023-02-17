@@ -2,6 +2,8 @@ from django.http import HttpResponse, JsonResponse
 from .models import *
 # from .models import Jobs, JobDetails, Perks, AddOns, Company, CompanySector, Sector, Internship, Status, Spoc
 from django.views.generic import View
+from rest_framework.response import Response
+from rest_framework.views import APIView
 import json
 
 from django.http.response import JsonResponse
@@ -18,14 +20,14 @@ def index(request):
     print(data.description)
     return HttpResponse("App is working fine.")
 
-class PerksView(View):    
+class PerksView(APIView):    
     def get(self, request, *args, **kwargs):
-        return HttpResponse("Get response for perks view.")
+        perks = Perks.objects.all()
+        serializer = PerksSerializer(perks, many = True)
+        return JsonResponse({"status":"success", "msg":"perk data retrieved", "data":serializer.data})
+
 
     def post(self, request, *args, **kwargs):
-        # input_data = json.loads(request.body)
-        # p = Perks(perk_id=input_data["perk_id"], perks=input_data["perks"])
-        # p.save()
         perk_data = JSONParser().parse(request)
         perk_serializer = PerksSerializer(data=perk_data)
         if perk_serializer.is_valid():
