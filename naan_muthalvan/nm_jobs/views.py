@@ -7,7 +7,7 @@ import json
 from django.http.response import JsonResponse
 from rest_framework.parsers import JSONParser 
 from rest_framework import status
-from nm_jobs.serializers import PerksSerializer
+from nm_jobs.serializers import PerksSerializer, JobsSerializer
 from django.shortcuts import get_object_or_404
 
 def index(request):
@@ -42,3 +42,25 @@ class PerksView(View):
         perk_instance.perks = perk_data["perks"]
         perk_instance.save()
         return JsonResponse({"Status": "Perk updated successfully"})
+
+class JobsView(View):
+    def get(self, request, *args, **kwargs):
+        return HttpResponse("Get response for jobs view.")
+
+    def post(self, request, *args, **kwargs):
+        job_data = JSONParser().parse(request)
+        job_serializer = JobsSerializer(data=job_data)
+        if job_serializer.is_valid():
+            job_serializer.save()
+        return JsonResponse({"Status": "Job inserted into DB"})
+    
+    def delete(self, request, *args, **kwargs):
+        count = Jobs.objects.all().delete()
+        return JsonResponse({'message': '{} jobs were deleted successfully!'.format(count[0])})
+
+    def put(self, request):
+        job_data = JSONParser().parse(request)
+        job_instance = Jobs.objects.get(perk_id=job_data["perk_id"])
+        job_instance.perks = job_data["perks"]
+        job_instance.save()
+        return JsonResponse({"Status": "Job updated successfully"})
