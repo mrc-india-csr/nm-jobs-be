@@ -40,6 +40,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+APPEND_SLASH=False
+
 ROOT_URLCONF = 'naan_muthalvan.urls'
 
 TEMPLATES = [

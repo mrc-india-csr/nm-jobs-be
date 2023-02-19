@@ -18,7 +18,7 @@ class Jobs(Model):
     def __str__(self) -> str:
         return str(self.id)
 
-class FullTime(Model):
+class JobDetails(Model):
     job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE)
     date_range = models.CharField(max_length = 100)
     currency = models.CharField(max_length = 100)
@@ -54,8 +54,7 @@ class AddOns(Model):
         return "addonsId: "+str(self.id)
 
 class Company(Model):
-    # company_id = models.UUIDField(primary_key = True)
-    name = models.CharField(max_length = 100)
+    name = models.CharField(max_length = 100, unique=True)
     description = models.CharField(max_length = 300)
     
     def __str__(self) -> str:
