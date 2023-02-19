@@ -1,9 +1,8 @@
 from django.urls import path
-from nm_jobs.views import PerksView
-
-from . import views
+from nm_jobs.views import PerksView, CompanyList, JobsView
 
 urlpatterns = [
-    path('', views.index, name = "index"),
-    path('perks/', PerksView.as_view())
+    path('perks/', PerksView.as_view()),
+    path('', JobsView.as_view()),
+    path('companies/', CompanyList.as_view(), name = "company"),
 ]
