@@ -86,39 +86,32 @@ def add_job(request):
         serializer = JobsSerializer(data=data)
         if serializer.is_valid():
             job_id = serializer.save()
+            data["job_id"] = job_id.id
         else:
             return JsonResponse({"status": "failed", "msg": "Jobs: Data Error"}, status=400)
-    except Exception as e:
-        return JsonResponse({"status": "failed", "msg": e}, status=500)
 
-    data["job_id"] = job_id.id
-
-    if data["job_type"] == "Fulltime":
-        try:
+        if data["job_type"] == "Fulltime":
             serializer = FullTimeSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
             else:
                 return JsonResponse({"status": "failed", "msg": "Fulltime: Data Error"}, status=400)
-        except Exception as e:
-            return JsonResponse({"status": "failed", "msg": e}, status=500)
-    elif data["job_type"] == "Internship":
-        try:
+        elif data["job_type"] == "Internship":
             serializer = InternshipSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
             else:
                 return JsonResponse({"status": "failed", "msg": "Internship: Data Error"}, status=400)
-        except Exception as e:
-            return JsonResponse({"status": "failed", "msg": e}, status=500)
-    else:
-        return JsonResponse({"status": "failed", "msg": "Invalid Job Type"}, status=400)  
+        else:
+            return JsonResponse({"status": "failed", "msg": "Invalid Job Type"}, status=400)  
     
-    perk_id = Perks.objects.filter(perks__in=data["perks"]).values_list('id', flat=True)
-    for pid in perk_id:
-        addon = AddOns()
-        addon.job_id_id=job_id.id
-        addon.perk_id_id=pid
-        addon.save()
+        perk_id = Perks.objects.filter(perks__in=data["perks"]).values_list('id', flat=True)
+        for pid in perk_id:
+            addon = AddOns()
+            addon.job_id_id=job_id.id
+            addon.perk_id_id=pid
+            addon.save()
+    except Exception as e:
+        return JsonResponse({"status": "failed", "msg": e}, status=500)
     
     return JsonResponse({"Status": "Job added successfully"})
