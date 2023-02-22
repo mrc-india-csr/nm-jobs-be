@@ -25,9 +25,10 @@ def index(request):
 
 class PerksView(APIView):    
     def get(self, request, *args, **kwargs):
-        perks = Perks.objects.all()
-        serializer = PerksSerializer(perks, many = True)
-        return JsonResponse({"status":"success", "msg":"perk data retrieved", "data":serializer.data})
+        perks = Perks.objects.values_list("perk", flat=True)
+        # serializer = PerksSerializer(perks, many = True)
+        perks = list(perks)
+        return JsonResponse({"status":"success", "msg":"perk data retrieved", "data":perks})
 
     def post(self, request, *args, **kwargs):
         try:
@@ -43,13 +44,13 @@ class PerksView(APIView):
     
     def delete(self, request, *args, **kwargs):
         data = json.loads(request.body)
-        count = Perks.objects.filter(perks=data["perks"]).delete()
+        count = Perks.objects.filter(perk=data["perks"]).delete()
         return JsonResponse({'message': '{} perks were deleted successfully!'.format(count[0])}, status=status.HTTP_204_NO_CONTENT)
     
     def put(self, request):
         perk_data = JSONParser().parse(request)
         perk_instance = Perks.objects.get(perk_id=perk_data["perk_id"])
-        perk_instance.perks = perk_data["perks"]
+        perk_instance.perk = perk_data["perks"]
         perk_instance.save()
         return JsonResponse({"Status": "Perk updated successfully"})
 
@@ -76,7 +77,7 @@ class JobsView(APIView):
     def put(self, request):
         job_data = JSONParser().parse(request)
         job_instance = Jobs.objects.get(perk_id=job_data["perk_id"])
-        job_instance.perks = job_data["perks"]
+        job_instance.perk = job_data["perks"]
         job_instance.save()
         return JsonResponse({"Status": "Job updated successfully"})
     
@@ -148,7 +149,7 @@ def post_job(request):
     else:
          return JsonResponse({"status": "failed", "msg": "Invalid Job Type"}, status=400)
 
-    perk_ids = Perks.objects.filter(perks__in=data["otherPerks"]).values_list('id', flat=True)
+    perk_ids = Perks.objects.filter(perk__in=data["otherPerks"]).values_list('id', flat=True)
     for pid in perk_ids:
         addon = AddOns()
         addon.job_id_id=job_id
