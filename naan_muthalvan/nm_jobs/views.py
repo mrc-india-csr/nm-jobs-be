@@ -13,6 +13,8 @@ from rest_framework import status
 from nm_jobs.serializers import *
 from django.shortcuts import get_object_or_404
 
+import datetime
+
 def index(request):
     print(request)
     print(request.method)
@@ -78,40 +80,114 @@ class JobsView(APIView):
         job_instance.save()
         return JsonResponse({"Status": "Job updated successfully"})
     
-def add_job(request):
+def post_job(request):
     data = JSONParser().parse(request)
 
     job_id = ""
+
+    # fields = ("job_id", "job_type", "title", "description", "category", "link", "number_of_openings",
+    #           "work_type", "location", "posted_by", "phone_no", "email")
+    job_data = {}
+    job_data["job_type"] = data["jobType"]
+    job_data["title"] = data["title"]
+    job_data["description"] = data["description"]
+    job_data["category"] = data["category"]
+    job_data["link"] = data["link"]
+    job_data["number_of_openings"] = data["numberOfOpenings"]
+    job_data["work_type"] = data["workModel"]
+    job_data["location"] = data["location"]
+    job_data["posted_by"] = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    job_data["phone_no"] = data["contactPhone"]
+    job_data["email"] = data["contactEmail"]
+
     try:
-        serializer = JobsSerializer(data=data)
+        serializer = JobsSerializer(data=job_data)
         if serializer.is_valid():
-            job_id = serializer.save()
-            data["job_id"] = job_id.id
+            job = serializer.save()
+            job_id = job.id
         else:
             return JsonResponse({"status": "failed", "msg": "Jobs: Data Error"}, status=400)
+    except Exception as e:
+        return JsonResponse({"status": "failed", "msg": e}, status=500)
 
-        if data["job_type"] == "Fulltime":
-            serializer = FullTimeSerializer(data=data)
+    if data["jobType"] == "Fulltime":
+        # fields = ("job_id", "date_range", "currency", "max_salary", "min_salary", "experience")
+        fulltime_data = {}
+        fulltime_data["job_id"] = job_id
+        fulltime_data["date_range"] = data["salaryTerm"]
+        fulltime_data["currency"] = data["salaryCurrency"]
+        fulltime_data["max_salary"] = data["maxSalary"]
+        fulltime_data["min_salary"] = data["minSalary"]
+        fulltime_data["experience"] = data["experience"]
+
+        try:
+            serializer = FullTimeSerializer(data=fulltime_data)
             if serializer.is_valid():
                 serializer.save()
             else:
                 return JsonResponse({"status": "failed", "msg": "Fulltime: Data Error"}, status=400)
-        elif data["job_type"] == "Internship":
-            serializer = InternshipSerializer(data=data)
+        except Exception as e:
+            return JsonResponse({"status": "failed", "msg": e}, status=500)
+    elif data["jobType"] == "Internship":
+        # fields = ("job_id", "stipend", "date_range", "duration", "experience")
+        internship_data = {}
+        internship_data["job_id"] = job_id
+        internship_data["stipend"] = data["stipendType"]
+        internship_data["date_range"] = data["salaryTerm"]
+        internship_data["duration"] = data["duration"]
+        internship_data["currency"] = data["salary"]
+
+        try:
+            serializer = InternshipSerializer(data=internship_data)
             if serializer.is_valid():
                 serializer.save()
             else:
                 return JsonResponse({"status": "failed", "msg": "Internship: Data Error"}, status=400)
-        else:
-            return JsonResponse({"status": "failed", "msg": "Invalid Job Type"}, status=400)  
+        except Exception as e:
+            return JsonResponse({"status": "failed", "msg": e}, status=500)
+    else:
+         return JsonResponse({"status": "failed", "msg": "Invalid Job Type"}, status=400)
+
+    perk_ids = Perks.objects.filter(perks__in=data["otherPerks"]).values_list('id', flat=True)
+    for pid in perk_ids:
+        addon = AddOns()
+        addon.job_id_id=job_id
+        addon.perk_id_id=pid
+        addon.save()
+
+    return JsonResponse({"status": "Job added successfully", "msg":job_id}, status=200)
+
+
+    # try:
+    #     serializer = JobsSerializer(data=data)
+    #     if serializer.is_valid():
+    #         job_id = serializer.save()
+    #         data["job_id"] = job_id.id
+    #     else:
+    #         return JsonResponse({"status": "failed", "msg": "Jobs: Data Error"}, status=400)
+
+    #     if data["job_type"] == "Fulltime":
+    #         serializer = FullTimeSerializer(data=data)
+    #         if serializer.is_valid():
+    #             serializer.save()
+    #         else:
+    #             return JsonResponse({"status": "failed", "msg": "Fulltime: Data Error"}, status=400)
+    #     elif data["job_type"] == "Internship":
+    #         serializer = InternshipSerializer(data=data)
+    #         if serializer.is_valid():
+    #             serializer.save()
+    #         else:
+    #             return JsonResponse({"status": "failed", "msg": "Internship: Data Error"}, status=400)
+    #     else:
+    #         return JsonResponse({"status": "failed", "msg": "Invalid Job Type"}, status=400)  
     
-        perk_id = Perks.objects.filter(perks__in=data["perks"]).values_list('id', flat=True)
-        for pid in perk_id:
-            addon = AddOns()
-            addon.job_id_id=job_id.id
-            addon.perk_id_id=pid
-            addon.save()
-    except Exception as e:
-        return JsonResponse({"status": "failed", "msg": e}, status=500)
+    #     perk_id = Perks.objects.filter(perks__in=data["perks"]).values_list('id', flat=True)
+    #     for pid in perk_id:
+    #         addon = AddOns()
+    #         addon.job_id_id=job_id.id
+    #         addon.perk_id_id=pid
+    #         addon.save()
+    # except Exception as e:
+    #     return JsonResponse({"status": "failed", "msg": e}, status=500)
     
-    return JsonResponse({"Status": "Job added successfully"})
+    # return JsonResponse({"Status": "Job added successfully"})
