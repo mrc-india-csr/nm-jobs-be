@@ -32,7 +32,7 @@ class FullTime(Model):
 
 class Perks(Model):
     # perk_id = models.IntegerField(primary_key= True)
-    perks = models.CharField(max_length= 300)
+    perk = models.CharField(max_length= 300)
 
     def __str__(self) -> str:
         return str(self.id)

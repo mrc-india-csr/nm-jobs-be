@@ -30,5 +30,5 @@ class AddOnsSerializer(serializers.ModelSerializer):
 class PerksSerializer(serializers.ModelSerializer):
     class Meta:
         model = Perks
-        # fields = ("id", "perks")
+        # fields = ("id", "perk")
         fields = ("__all__")
