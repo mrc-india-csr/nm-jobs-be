@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 test.py
 .vscode/
+
+naan_muthalvan/nm_jobs/migrations/*
+!**naan_muthalvan/nm_jobs/migrations/__init__.py
