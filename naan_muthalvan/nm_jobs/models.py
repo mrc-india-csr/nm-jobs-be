@@ -12,7 +12,7 @@ class Jobs(Model):
     work_type = models.CharField(max_length = 100)
     location = models.CharField(max_length = 100)
     posted_by = models.CharField(max_length = 100)
-    phone_no = models.BigIntegerField(unique= True)
+    phone_no = models.BigIntegerField()
     email = models.EmailField(max_length = 200)
 
     def __str__(self) -> str:
@@ -35,13 +35,14 @@ class Internship(Model):
     date_range = models.CharField(max_length = 100)
     duration = models.IntegerField()
     currency = models.CharField(max_length = 100)
+    is_pre_placement_offer = models.BooleanField()
 
     def __str__(self) -> str:
         return "jobId: "+str(self.job_id)
 
 class Perks(Model):
     # perk_id = models.UUIDField()
-    perks = models.CharField(max_length= 300, unique=True)
+    perk = models.CharField(max_length= 300, unique=True)
 
     def __str__(self) -> str:
         return "perkId: "+ str(self.id)
@@ -88,7 +89,7 @@ class Status(Model):
 class Spoc(Model):
     company_id = models.OneToOneField(Company, on_delete=models.CASCADE)
     name = models.CharField(max_length = 100)
-    phone_no = models.BigIntegerField(unique=True)
+    phone_no = models.BigIntegerField()
     email = models.EmailField(max_length = 200, unique=True)
     
     def __str__(self) -> str:

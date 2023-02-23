@@ -16,7 +16,7 @@ class JobsSerializer(serializers.ModelSerializer):
 class PerksSerializer(serializers.ModelSerializer):
     class Meta:
         model = Perks
-        fields = ("perks",)
+        fields = ("perk",)
 
 class TestModelIdSerializer(serializers.ModelSerializer):
     name = CharField(required = True)
