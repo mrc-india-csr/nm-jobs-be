@@ -1,10 +1,12 @@
 from django.urls import path
-from nm_jobs.views import PerksView, CompanyList, TestModelId, CompanyWithName, InsertMultiple
+from nm_jobs.views import PerksView, CompanyList, JobsView, CompanyWithName, post_job
+
+from . import views
 
 urlpatterns = [
     path('companies', CompanyList.as_view(), name = "company"),
     path('companies/<str:name>', CompanyWithName.as_view(), name = "company with name"),
-    path('perks', PerksView.as_view()),
-    path('test', TestModelId.as_view()),
-    path('testmultiple', InsertMultiple.as_view()),
+    path('', JobsView.as_view()),
+    path('perks/', PerksView.as_view()),
+    path('postjob/', post_job)
 ]
