@@ -13,8 +13,7 @@ SECRET_KEY = 'django-insecure-8*hwh#m%hwk^12e_096019*d!yr9q4^*7g1pve=y@m$d@93jg7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ["Matheshkumar.pythonanywhere.com"]
 
 # Application definition
 
@@ -25,15 +24,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'rest_framework',
-    'nm_jobs.apps.NmJobsConfig'
+    'nm_jobs.apps.NmJobsConfig',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -123,3 +123,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# To avoid CORS errors.
+CORS_ALLOWED_ORIGINS = [
+    'https://matheshkumar.pythonanywhere.com/',
+]
