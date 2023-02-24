@@ -1,32 +1,23 @@
 from django.http import HttpResponse, JsonResponse
-from .models import *
-# from .models import Jobs, JobDetails, Perks, AddOns, Company, CompanySector, Sector, Internship, Status, Spoc
-from django.views.generic import View
-from rest_framework.response import Response
-from rest_framework.views import APIView
-import json
-
 from django.http.response import JsonResponse
+
+from .models import *
+from nm_jobs.serializers import *
+
+from rest_framework.views import APIView
 from rest_framework.parsers import JSONParser 
 from rest_framework import status
-# from nm_jobs.serializers import PerksSerializer, JobsSerializer, JobDetailsSerializer
-from nm_jobs.serializers import *
-from django.shortcuts import get_object_or_404
 
+import json
 import datetime
 
+
 def index(request):
-    print(request)
-    print(request.method)
-    print(Jobs.objects.first())
-    data = Jobs.objects.first()
-    print(data.description)
-    return HttpResponse("App is working fine.")
+    return JsonResponse({"status":"success", "msg":"nm jobs index page loaded successfully."}, status=200)
 
 class PerksView(APIView):    
     def get(self, request, *args, **kwargs):
         perks = Perks.objects.values_list("perk", flat=True)
-        # serializer = PerksSerializer(perks, many = True)
         perks = list(perks)
         return JsonResponse({"status":"success", "msg":"perk data retrieved", "data":perks})
 
@@ -81,7 +72,7 @@ class JobsView(APIView):
         job_instance.save()
         return JsonResponse({"Status": "Job updated successfully"})
     
-def post_job(request):
+def PostJob(request):
     data = JSONParser().parse(request)
 
     job_id = ""
@@ -122,7 +113,7 @@ def post_job(request):
         fulltime_data["experience"] = data["experience"]
 
         try:
-            serializer = FullTimeSerializer(data=fulltime_data)
+            serializer = JobDetailsSerializer(data=fulltime_data)
             if serializer.is_valid():
                 serializer.save()
             else:
@@ -157,38 +148,3 @@ def post_job(request):
         addon.save()
 
     return JsonResponse({"status": "Job added successfully", "msg":job_id}, status=200)
-
-
-    # try:
-    #     serializer = JobsSerializer(data=data)
-    #     if serializer.is_valid():
-    #         job_id = serializer.save()
-    #         data["job_id"] = job_id.id
-    #     else:
-    #         return JsonResponse({"status": "failed", "msg": "Jobs: Data Error"}, status=400)
-
-    #     if data["job_type"] == "Fulltime":
-    #         serializer = FullTimeSerializer(data=data)
-    #         if serializer.is_valid():
-    #             serializer.save()
-    #         else:
-    #             return JsonResponse({"status": "failed", "msg": "Fulltime: Data Error"}, status=400)
-    #     elif data["job_type"] == "Internship":
-    #         serializer = InternshipSerializer(data=data)
-    #         if serializer.is_valid():
-    #             serializer.save()
-    #         else:
-    #             return JsonResponse({"status": "failed", "msg": "Internship: Data Error"}, status=400)
-    #     else:
-    #         return JsonResponse({"status": "failed", "msg": "Invalid Job Type"}, status=400)  
-    
-    #     perk_id = Perks.objects.filter(perks__in=data["perks"]).values_list('id', flat=True)
-    #     for pid in perk_id:
-    #         addon = AddOns()
-    #         addon.job_id_id=job_id.id
-    #         addon.perk_id_id=pid
-    #         addon.save()
-    # except Exception as e:
-    #     return JsonResponse({"status": "failed", "msg": e}, status=500)
-    
-    # return JsonResponse({"Status": "Job added successfully"})

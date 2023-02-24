@@ -19,13 +19,13 @@ class Jobs(Model):
     def __str__(self) -> str:
         return str(self.id)
 
-class FullTime(Model):
+class JobDetails(Model):
     job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE)
     date_range = models.CharField(max_length = 100)
     currency = models.CharField(max_length = 100)
     max_salary = models.BigIntegerField()
     min_salary = models.BigIntegerField()
-    experience = models.IntegerField()
+    experience = models.CharField(max_length = 100)
 
     def __str__(self) -> str:
         return str(self.job_id)

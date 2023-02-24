@@ -9,9 +9,9 @@ class JobsSerializer(serializers.ModelSerializer):
         #           "work_type", "location", "posted_by", "phone_no", "email")
         fields = ("__all__")
 
-class FullTimeSerializer(serializers.ModelSerializer):
+class JobDetailsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = FullTime
+        model = JobDetails
         # fields = ("job_id", "date_range", "currency", "max_salary", "min_salary", "experience")
         fields = ("__all__")
 
