@@ -146,5 +146,5 @@ def PostJob(request):
         addon.job_id_id=job_id
         addon.perk_id_id=pid
         addon.save()
-
-    return JsonResponse({"status": "Job added successfully", "msg":job_id}, status=200)
+        
+    return JsonResponse({"status": "success", "msg":"job added successfully", "data":{"job_id":job_id}}, status=200)
