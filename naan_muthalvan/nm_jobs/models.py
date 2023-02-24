@@ -28,56 +28,7 @@ class JobDetails(Model):
 
     def __str__(self) -> str:
         return "jobId: " + str(self.job_id)
-
-class Perks(Model):
-    # perk_id = models.IntegerField(primary_key= True)
-    perk = models.CharField(max_length= 300)
-
-    def __str__(self) -> str:
-        return str(self.id)
-
-class AddOns(Model):
-    job_id = models.ForeignKey(Jobs, on_delete = models.CASCADE)
-    perk_id = models.ForeignKey(Perks, on_delete=models.CASCADE)
-
-    def __str__(self) -> str:
-        return str(self.job_id)
-
-class Company(Model):
-    # company_id = models.IntegerField(primary_key = True)
-    name = models.CharField(max_length = 100)
-    description = models.CharField(max_length = 300)
     
-    def __str__(self) -> str:
-        return str(self.company_id)
-
-
-class Sector(Model):
-    # sector_id = models.IntegerField(primary_key = True)
-    industry = models.CharField(max_length = 100)
-    department = models.CharField(max_length = 100)
-    
-    def __str__(self) -> str:
-        return str(self.sector_id)
-
-class CompanySector(Model):
-    sector_id = models.ForeignKey(Sector, on_delete= models.CASCADE)
-    company_id = models.ForeignKey(Company, on_delete = models.CASCADE)
-
-    def __str__(self) -> str:
-        return str(self.company_id)
-
-class Internship(Model):
-    job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE)
-    stipend = models.CharField(max_length = 20)
-    date_range = models.CharField(max_length = 100)
-    duration = models.IntegerField()
-    currency = models.CharField(max_length = 100)
-    is_pre_placement_offer = models.BooleanField()
-
-    def __str__(self) -> str:
-        return "jobId: "+str(self.job_id)
-
 class Perks(Model):
     # perk_id = models.UUIDField()
     perk = models.CharField(max_length= 300, unique=True)
@@ -90,7 +41,18 @@ class AddOns(Model):
     perk_id = models.ForeignKey(Perks, on_delete=models.CASCADE)
 
     def __str__(self) -> str:
-        return "addonsId: "+str(self.id)
+        return str(self.job_id)
+
+class Internship(Model):
+    job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE)
+    stipend = models.CharField(max_length = 20)
+    date_range = models.CharField(max_length = 100)
+    duration = models.IntegerField()
+    currency = models.CharField(max_length = 100)
+    is_pre_placement_offer = models.BooleanField()
+
+    def __str__(self) -> str:
+        return "jobId: "+str(self.job_id)
 
 class Company(Model):
     name = models.CharField(max_length = 100, unique=True)

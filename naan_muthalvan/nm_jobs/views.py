@@ -82,6 +82,46 @@ class JobsView(APIView):
         job_instance.save()
         return JsonResponse({"Status": "Job updated successfully"})
 
+class CompanyView(APIView):    
+    def get(self, request, *args, **kwargs):
+        company = Company.objects.all()
+        company = list(company)
+        return JsonResponse({"status":"success", "msg":"company data retrieved", "data":company})    
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = JSONParser().parse(request)
+            serializer = CompanySerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return JsonResponse({"status": "success", "msg":"company inserted successfully", "data": serializer.data}, status=200)
+            else:
+                return JsonResponse({"status": "failed", "msg": "Company Insert: Invalid Data"}, status=400)
+        except Exception as e:
+            return JsonResponse({"status": "failed", "msg": e}, status=500)
+
+class SpocView(APIView):    
+    def get(self, request, *args, **kwargs):
+        spoc = Spoc.objects.values_list("name", "phone_no", "email")
+        data = dict()
+        data["name"] = spoc[0][0]
+        data["phone_no"] = spoc[0][1]
+        data["email"] = spoc[0][2]
+        # spoc = list(itertools.chain(*spoc))
+        return JsonResponse({"status":"success", "msg":"spoc data retrieved", "data":data})    
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = JSONParser().parse(request)
+            serializer = SpocSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return JsonResponse({"status": "success", "msg":"spoc inserted successfully", "data": serializer.data}, status=200)
+            else:
+                return JsonResponse({"status": "failed", "msg": "Spoc Insert: Invalid Data"}, status=400)
+        except Exception as e:
+            return JsonResponse({"status": "failed", "msg": e}, status=500)
+
 class CompanyList(APIView):
     def get(self, request):
         try:
@@ -177,7 +217,7 @@ class InsertMultiple(APIView):
         except ValueError:
             return JsonResponse({"msg":"json error"}, status = 400)
 
-def post_job(request):
+def PostJob(request):
     data = JSONParser().parse(request)
 
     # fields = ("job_id", "job_type", "title", "description", "category", "link", "number_of_openings",
