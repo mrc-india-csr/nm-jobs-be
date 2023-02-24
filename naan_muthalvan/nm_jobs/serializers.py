@@ -1,5 +1,4 @@
 from rest_framework import serializers
-# from nm_jobs.models import Perks, Jobs
 from nm_jobs.models import *
 
 class JobsSerializer(serializers.ModelSerializer):
@@ -31,4 +30,16 @@ class PerksSerializer(serializers.ModelSerializer):
     class Meta:
         model = Perks
         # fields = ("id", "perk")
+        fields = ("__all__")
+
+class SpocSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Spoc
+        # fields = ("company_id", "name", "phone_no", "email")
+        fields = ("__all__")
+
+class CompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        # fields = ("name", "description")
         fields = ("__all__")
