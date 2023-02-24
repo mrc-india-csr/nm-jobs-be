@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'rest_framework',
     'nm_jobs.apps.NmJobsConfig'
 ]
 
@@ -38,6 +39,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+APPEND_SLASH=False
 
 ROOT_URLCONF = 'naan_muthalvan.urls'
 

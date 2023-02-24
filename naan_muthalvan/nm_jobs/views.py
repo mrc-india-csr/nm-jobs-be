@@ -1,3 +1,6 @@
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .models import Company, TestModelId
 from django.http import HttpResponse, JsonResponse
 from django.http.response import JsonResponse
 
@@ -7,6 +10,12 @@ from nm_jobs.serializers import *
 from rest_framework.views import APIView
 from rest_framework.parsers import JSONParser 
 from rest_framework import status
+# from nm_jobs.serializers import PerksSerializer, JobsSerializer, JobDetailsSerializer
+from nm_jobs.serializers import *
+from django.shortcuts import get_object_or_404
+import uuid
+import requests
+from django.core.exceptions import ObjectDoesNotExist
 
 import json
 import datetime
@@ -62,7 +71,7 @@ class JobsView(APIView):
         except Exception as e:
             return JsonResponse({"status": "failed", "msg": e}, status=500)
     
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request):
         count = Jobs.objects.all().delete()
         return JsonResponse({'message': '{} jobs were deleted successfully!'.format(count[0])})
 
@@ -73,53 +82,107 @@ class JobsView(APIView):
         job_instance.save()
         return JsonResponse({"Status": "Job updated successfully"})
 
-class CompanyView(APIView):    
-    def get(self, request, *args, **kwargs):
-        company = Company.objects.all()
-        company = list(company)
-        return JsonResponse({"status":"success", "msg":"company data retrieved", "data":company})    
-
-    def post(self, request, *args, **kwargs):
+class CompanyList(APIView):
+    def get(self, request):
         try:
-            data = JSONParser().parse(request)
-            serializer = CompanySerializer(data=data)
+            companies = Company.objects.all()
+            serializer = CompanySerializer(companies, many = True)
+            if serializer.data:
+                return Response(serializer.data, status=200)
+            else:
+                return Response(serializer.errors, status=400)
+        except Exception as e:
+            return JsonResponse({"status": "failed", "msg": "internal server error", "reason": e}, status=500)
+
+    def post(self, request):
+        try:
+            try:
+                body = JSONParser().parse(request)
+            except ValueError:
+                return JsonResponse({"status": "failed", "msg": "Invalid Json"}, status=400)
+            serializer = CompanySerializer(data=body)
             if serializer.is_valid():
                 serializer.save()
-                return JsonResponse({"status": "success", "msg":"company inserted successfully", "data": serializer.data}, status=200)
+                return JsonResponse({"status": "success","msg":serializer.data}, status=200)
             else:
-                return JsonResponse({"status": "failed", "msg": "Company Insert: Invalid Data"}, status=400)
+                return JsonResponse({"status": "failed", "msg": serializer.errors}, status=400)
         except Exception as e:
-            return JsonResponse({"status": "failed", "msg": e}, status=500)
+            print(e)
+            return JsonResponse({"status": "failed", "msg": "internal server error"}, status=500)
 
-class SpocView(APIView):    
-    def get(self, request, *args, **kwargs):
-        spoc = Spoc.objects.values_list("name", "phone_no", "email")
-        data = dict()
-        data["name"] = spoc[0][0]
-        data["phone_no"] = spoc[0][1]
-        data["email"] = spoc[0][2]
-        # spoc = list(itertools.chain(*spoc))
-        return JsonResponse({"status":"success", "msg":"spoc data retrieved", "data":data})    
-
-    def post(self, request, *args, **kwargs):
+class CompanyWithName(APIView):
+    def get(self, request, name):
         try:
-            data = JSONParser().parse(request)
-            serializer = SpocSerializer(data=data)
+            companies = Company.objects.get(name = name)
+        except ObjectDoesNotExist:
+            return JsonResponse({"status": "failed", "msg": "requested data is not found"}, status=404)
+        serializer = CompanySerializer(companies)
+        if serializer.data:
+            return Response(serializer.data, status=200)
+        else:
+            return Response(serializer.errors, status=400)
+    
+    def put(self, request, name):
+        try:
+            company_data = Company.objects.get(name = name)
+            try:
+                body = JSONParser().parse(request)
+            except ValueError:
+                return JsonResponse({"status": "failed", "msg": "invalid data provided"}, status=400)
+            serializer = CompanySerializer(company_data, body)
             if serializer.is_valid():
                 serializer.save()
-                return JsonResponse({"status": "success", "msg":"spoc inserted successfully", "data": serializer.data}, status=200)
+                return JsonResponse({"status": "Success", "data": serializer.data}, status= 200)
             else:
-                return JsonResponse({"status": "failed", "msg": "Spoc Insert: Invalid Data"}, status=400)
+                return JsonResponse({"status": "Failed", "msg": serializer.errors}, status=400)
         except Exception as e:
-            return JsonResponse({"status": "failed", "msg": e}, status=500)
+            return JsonResponse({"status": "failed", "msg": "internal server error"}, status=500)
+    
+    def delete(self, request, name):
+        try:
+            company_data = Company.objects.get(name = name)
+            company_data.delete()
+            return JsonResponse({"status": "Success", "deleted company": name}, status = 200)
+        except Exception as e:
+            return JsonResponse({"status": "failed", "msg": "internal server error"}, status=500)
 
-def PostJob(request):
+class InsertMultiple(APIView):
+    def post(self, request):
+        try:
+            try:
+                body = JSONParser().parse(request)
+            except ValueError:
+                return JsonResponse({"status": "failed", "msg": "Invalid Json"}, status=400)
+            company_values = {}
+            company_values["name"] = body["company_name"]
+            company_values["description"] = body["company_description"]
+            perks_data = body["perks"]
+
+            #Company
+            company_serializer = CompanySerializer(data=company_values)
+            if company_serializer.is_valid():
+                company_serializer.save()
+                company_response = company_serializer.data
+            else:
+                return JsonResponse({"status": "failed", "msg": company_serializer.errors}, status=400)
+            
+            #Perks
+            for perk in perks_data: 
+                perk_serializer = PerksSerializer(data={"perks": perk})
+                if perk_serializer.is_valid():
+                    perk_serializer.save()
+                else:
+                    return JsonResponse({"status": "failed", "msg": perk_serializer.errors}, status=400)
+            return JsonResponse({"msg":"success", "company": company_response, "perks": perks_data}, status = 200)
+        except ValueError:
+            return JsonResponse({"msg":"json error"}, status = 400)
+
+def post_job(request):
     data = JSONParser().parse(request)
-
-    job_id = ""
 
     # fields = ("job_id", "job_type", "title", "description", "category", "link", "number_of_openings",
     #           "work_type", "location", "posted_by", "phone_no", "email")
+    job_id = ""
     job_data = {}
     job_data["job_type"] = data["jobType"]
     job_data["title"] = data["title"]

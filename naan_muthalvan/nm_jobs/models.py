@@ -3,7 +3,6 @@ from .utils.models_abstract import Model
 
 # Create your models here.
 class Jobs(Model):
-    # job_id = models.IntegerField(primary_key=True)
     job_type = models.CharField(max_length = 100)
     title = models.CharField(max_length = 200)
     description = models.TextField()
@@ -13,7 +12,7 @@ class Jobs(Model):
     work_type = models.CharField(max_length = 100)
     location = models.CharField(max_length = 100)
     posted_by = models.CharField(max_length = 100)
-    phone_no = models.BigIntegerField(unique= True)
+    phone_no = models.BigIntegerField()
     email = models.EmailField(max_length = 200)
 
     def __str__(self) -> str:
@@ -28,7 +27,7 @@ class JobDetails(Model):
     experience = models.CharField(max_length = 100)
 
     def __str__(self) -> str:
-        return str(self.job_id)
+        return "jobId: " + str(self.job_id)
 
 class Perks(Model):
     # perk_id = models.IntegerField(primary_key= True)
@@ -74,9 +73,46 @@ class Internship(Model):
     date_range = models.CharField(max_length = 100)
     duration = models.IntegerField()
     currency = models.CharField(max_length = 100)
+    is_pre_placement_offer = models.BooleanField()
 
     def __str__(self) -> str:
-        return str(self.job_id)
+        return "jobId: "+str(self.job_id)
+
+class Perks(Model):
+    # perk_id = models.UUIDField()
+    perk = models.CharField(max_length= 300, unique=True)
+
+    def __str__(self) -> str:
+        return "perkId: "+ str(self.id)
+
+class AddOns(Model):
+    job_id = models.ForeignKey(Jobs, on_delete = models.CASCADE)
+    perk_id = models.ForeignKey(Perks, on_delete=models.CASCADE)
+
+    def __str__(self) -> str:
+        return "addonsId: "+str(self.id)
+
+class Company(Model):
+    name = models.CharField(max_length = 100, unique=True)
+    description = models.CharField(max_length = 300)
+    
+    def __str__(self) -> str:
+        return "companyId: "+str(self.id)
+
+class Sector(Model):
+    # sector_id = models.UUIDField(primary_key = True)
+    industry = models.CharField(max_length = 100)
+    department = models.CharField(max_length = 100)
+    
+    def __str__(self) -> str:
+        return "sectorId: "+str(self.id)
+
+class CompanySector(Model):
+    sector_id = models.ForeignKey(Sector, on_delete= models.CASCADE)
+    company_id = models.ForeignKey(Company, on_delete = models.CASCADE)
+
+    def __str__(self) -> str:
+        return "companySectorId: "+str(self.id)
 
 class Status(Model):
     job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE)
@@ -86,16 +122,16 @@ class Status(Model):
     company_id = models.ForeignKey(Company, on_delete=models.CASCADE)
 
     def __str__(self) -> str:
-        return str(self.job_id)
+        return "jobId: "+str(self.job_id)
 
 class Spoc(Model):
     company_id = models.OneToOneField(Company, on_delete=models.CASCADE)
     name = models.CharField(max_length = 100)
-    phone_no = models.BigIntegerField(unique=True)
+    phone_no = models.BigIntegerField()
     email = models.EmailField(max_length = 200, unique=True)
     
     def __str__(self) -> str:
-        return str(self.company_id)
+        return "companyId: "+str(self.company_id)
 
 # class files(Model):
 #     job_id = models.ForeignKey(Jobs, on_delete=models.CASCADE)
@@ -112,3 +148,10 @@ class Spoc(Model):
 
 #     def __str__(self) -> str:
 #         return str(self.company_id)
+
+class TestModelId(Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+
+    def __str__(self) -> str:
+        return self.name
