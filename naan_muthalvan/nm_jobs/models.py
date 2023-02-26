@@ -16,7 +16,7 @@ class Jobs(Model):
     email = models.EmailField(max_length = 200)
 
     def __str__(self) -> str:
-        return str(self.id)
+        return "jobId: " + str(self.id)
 
 class JobDetails(Model):
     job_id = models.OneToOneField(Jobs, on_delete = models.CASCADE)
@@ -27,7 +27,7 @@ class JobDetails(Model):
     experience = models.CharField(max_length = 100)
 
     def __str__(self) -> str:
-        return "jobId: " + str(self.job_id)
+        return "fullTimeId: " + str(self.job_id)
     
 class Perks(Model):
     # perk_id = models.UUIDField()
@@ -52,7 +52,7 @@ class Internship(Model):
     is_pre_placement_offer = models.BooleanField()
 
     def __str__(self) -> str:
-        return "jobId: "+str(self.job_id)
+        return "internId: "+str(self.job_id)
 
 class Company(Model):
     name = models.CharField(max_length = 100, unique=True)

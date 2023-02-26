@@ -13,7 +13,7 @@ SECRET_KEY = 'django-insecure-8*hwh#m%hwk^12e_096019*d!yr9q4^*7g1pve=y@m$d@93jg7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
     'nm_jobs.apps.NmJobsConfig',
     'corsheaders'
@@ -40,7 +41,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-APPEND_SLASH=False
+APPEND_SLASH=True
 
 ROOT_URLCONF = 'naan_muthalvan.urls'
 
