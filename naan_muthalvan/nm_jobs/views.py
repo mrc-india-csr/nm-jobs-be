@@ -57,7 +57,10 @@ class PerksView(APIView):
 
 class JobsView(APIView):
     def get(self, request, *args, **kwargs):
-        return HttpResponse("Get response for jobs view.")
+        jobs = Jobs.objects.values_list("job_type", "title", "description", "category", "link", "number_of_openings",
+              "work_type", "location", "posted_by", "phone_no", "email")
+        jobs = list(jobs)
+        return JsonResponse({"status":"success", "msg":"perk data retrieved", "data":jobs})
 
     def post(self, request, *args, **kwargs):
         try:
