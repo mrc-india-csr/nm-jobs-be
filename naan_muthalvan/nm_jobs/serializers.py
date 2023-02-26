@@ -44,3 +44,15 @@ class CompanySerializer(serializers.ModelSerializer):
         model = Company
         # fields = ("name", "description")
         fields = ("__all__")
+
+class SectorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Sector
+        # fields = ("industry", "department")
+        fields = ("__all__")
+
+class CompanySectorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanySector
+        # fields = ("sector_id", "company_id")
+        fields = ("__all__")

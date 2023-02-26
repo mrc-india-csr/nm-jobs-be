@@ -1,8 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Company, TestModelId
 from django.http import HttpResponse, JsonResponse
-from django.http.response import JsonResponse
 
 from .models import *
 from nm_jobs.serializers import *
@@ -10,20 +8,15 @@ from nm_jobs.serializers import *
 from rest_framework.views import APIView
 from rest_framework.parsers import JSONParser 
 from rest_framework import status
-# from nm_jobs.serializers import PerksSerializer, JobsSerializer, JobDetailsSerializer
 from nm_jobs.serializers import *
-from django.shortcuts import get_object_or_404
-import uuid
-import requests
 from django.core.exceptions import ObjectDoesNotExist
 
 import json
 import datetime
-import itertools
 
 
-def index(request):
-    return JsonResponse({"status":"success", "msg":"nm jobs index page loaded successfully."}, status=200)
+def health_response():
+    return JsonResponse({"status":"success", "msg":"nm backend is up and running"}, status=200)
 
 class PerksView(APIView):    
     def get(self, request, *args, **kwargs):
@@ -39,7 +32,7 @@ class PerksView(APIView):
                 serializer.save()
                 return JsonResponse({"status": "success", "msg": serializer.data}, status=200)
             else:
-                return JsonResponse({"status": "failed", "msg": "Perk Insert: Invalid Data"}, status=400)
+                return JsonResponse({"status": "failed", "msg": serializer.errors}, status=400)
         except Exception as e:
             return JsonResponse({"status": "failed", "msg": e}, status=500)
     
@@ -99,7 +92,7 @@ class CompanyView(APIView):
                 serializer.save()
                 return JsonResponse({"status": "success", "msg":"company inserted successfully", "data": serializer.data}, status=200)
             else:
-                return JsonResponse({"status": "failed", "msg": "Company Insert: Invalid Data"}, status=400)
+                return JsonResponse({"status": "failed", "msg": serializer.errors}, status=400)
         except Exception as e:
             return JsonResponse({"status": "failed", "msg": e}, status=500)
 
@@ -121,7 +114,7 @@ class SpocView(APIView):
                 serializer.save()
                 return JsonResponse({"status": "success", "msg":"spoc inserted successfully", "data": serializer.data}, status=200)
             else:
-                return JsonResponse({"status": "failed", "msg": "Spoc Insert: Invalid Data"}, status=400)
+                return JsonResponse({"status": "failed", "msg": serializer.errors}, status=400)
         except Exception as e:
             return JsonResponse({"status": "failed", "msg": e}, status=500)
 
@@ -171,7 +164,7 @@ class CompanyWithName(APIView):
             try:
                 body = JSONParser().parse(request)
             except ValueError:
-                return JsonResponse({"status": "failed", "msg": "invalid data provided"}, status=400)
+                return JsonResponse({"status": "failed", "msg": "Invalid Json"}, status=400)
             serializer = CompanySerializer(company_data, body)
             if serializer.is_valid():
                 serializer.save()
@@ -220,8 +213,9 @@ class InsertMultiple(APIView):
         except ValueError:
             return JsonResponse({"msg":"json error"}, status = 400)
 
-def PostJob(request):
+def post_job(request):
     data = JSONParser().parse(request)
+    job_serialized, fulltime_serialized, internship_serialized = False
 
     # fields = ("job_id", "job_type", "title", "description", "category", "link", "number_of_openings",
     #           "work_type", "location", "posted_by", "phone_no", "email")
@@ -240,12 +234,12 @@ def PostJob(request):
     job_data["email"] = data["contactEmail"]
 
     try:
-        serializer = JobsSerializer(data=job_data)
-        if serializer.is_valid():
-            job = serializer.save()
+        job_serializer = JobsSerializer(data=job_data)
+        if job_serializer.is_valid():
+            job = job_serializer.save()
             job_id = job.id
         else:
-            return JsonResponse({"status": "failed", "msg": "Jobs: Data Error"}, status=400)
+            return JsonResponse({"status": "failed", "msg": job_serializer.errors}, status=400)
     except Exception as e:
         return JsonResponse({"status": "failed", "msg": e}, status=500)
 
@@ -260,28 +254,29 @@ def PostJob(request):
         fulltime_data["experience"] = data["experience"]
 
         try:
-            serializer = JobDetailsSerializer(data=fulltime_data)
-            if serializer.is_valid():
-                serializer.save()
+            fulltime_serializer = JobDetailsSerializer(data=fulltime_data)
+            if fulltime_serializer.is_valid():
+                fulltime_serializer.save()
             else:
-                return JsonResponse({"status": "failed", "msg": "Fulltime: Data Error"}, status=400)
+                return JsonResponse({"status": "failed", "msg": fulltime_serializer.errors}, status=400)
         except Exception as e:
             return JsonResponse({"status": "failed", "msg": e}, status=500)
     elif data["jobType"] == "Internship":
-        # fields = ("job_id", "stipend", "date_range", "duration", "experience")
+        # fields = ("job_id", "stipend", "date_range","is_pre_placement_offer", "duration", "experience")
         internship_data = {}
         internship_data["job_id"] = job_id
+        internship_data["is_pre_placement_offer"] = data["isPPO"]
         internship_data["stipend"] = data["stipendType"]
         internship_data["date_range"] = data["salaryTerm"]
         internship_data["duration"] = data["duration"]
         internship_data["currency"] = data["salary"]
 
         try:
-            serializer = InternshipSerializer(data=internship_data)
-            if serializer.is_valid():
-                serializer.save()
+            intern_serializer = InternshipSerializer(data=internship_data)
+            if intern_serializer.is_valid():
+                intern_serializer.save()
             else:
-                return JsonResponse({"status": "failed", "msg": "Internship: Data Error"}, status=400)
+                return JsonResponse({"status": "failed", "msg": intern_serializer.errors}, status=400)
         except Exception as e:
             return JsonResponse({"status": "failed", "msg": e}, status=500)
     else:
@@ -295,3 +290,66 @@ def PostJob(request):
         addon.save()
 
     return JsonResponse({"status": "success", "msg":"job added successfully", "data":{"job_id":job_id}}, status=200)
+
+class CreateProfile(APIView):
+    def data_validator(self, body: dict):
+        all_good = True
+        message = "success"
+        list_of_fields = ["company_name", "description", "sectors", "location", "spoc"]
+        spoc_fields = ["name", "email", "phone_no"]
+        for field in list_of_fields:
+            if field not in body.keys():
+                all_good = False
+                message = field+ " is missing"
+                break
+        if all_good:
+            if (type(body["sectors"]) != list):
+                all_good = False
+                message =  "invalid format for sectors"
+            if (type(body["spoc"]) != dict):
+                all_good = False
+                message =  "invalid format for spoc"
+            if all_good:
+                for field in spoc_fields:
+                    print(field)
+                    if field not in (body["spoc"]).keys():
+                        all_good = False
+                        message = field+ " is missing"
+                        break
+        return [all_good, message]
+
+    def post(self, request):
+        # tables to interact "company", "sector", "company_sector", "spoc"
+        try:
+            json_body = JSONParser().parse(request)
+            validator = self.data_validator(json_body)
+            if validator[0]:
+                #Company
+                company_data = {}
+                company_data["name"] = json_body["company_name"]
+                company_data["description"] = json_body["description"]
+                company_serializer = CompanySerializer(data=company_data)
+                if company_serializer.is_valid():
+                    company_response = company_serializer.save()
+                    company_id = company_response.id
+                sectors = json_body["sectors"]
+
+                #SPOC
+                spoc_data = json_body["spoc"]
+                spoc_data["company_id"] = company_id
+                spoc_serializer = SpocSerializer(data=spoc_data)
+                if spoc_serializer.is_valid():
+                    spoc_serializer.save()
+
+                #Company sectors    
+                sector_ids = Sector.objects.filter(department__in=sectors).values_list('id', flat=True)
+                for sid in sector_ids:
+                    company_sector = CompanySector()
+                    company_sector.company_id = company_id
+                    company_sector.sector_id = sid
+                    company_sector.save()    
+
+            return JsonResponse({"status": "failed", "message": validator[1]})
+
+        except Exception as e:
+            return JsonResponse({"status": "failed", "msg": "internal server error"}, status=500)
