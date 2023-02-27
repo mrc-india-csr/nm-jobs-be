@@ -20,11 +20,14 @@ import datetime
 def health_response():
     return JsonResponse({"status":"success", "msg":"nm backend is up and running"}, status=200)
 
+def response_value(status, msg, data, code):
+    return JsonResponse({"status":status, "msg":msg, "data":data}, status=code)
+
 class PerksView(APIView):    
     def get(self, request, *args, **kwargs):
         perks = Perks.objects.values_list("perk", flat=True)
         perks = list(perks)
-        return JsonResponse({"status":"success", "msg":"perk data retrieved", "data":perks})
+        return response_value("success", "retrieved perks data", perks, 200)
 
     @swagger_auto_schema(request_body=PerksSerializer)
     def post(self, request, *args, **kwargs):
@@ -33,23 +36,31 @@ class PerksView(APIView):
             serializer = PerksSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
-                return JsonResponse({"status": "success", "msg": serializer.data}, status=200)
+                return response_value("success", "perk inserted", serializer.data, 200)
             else:
-                return JsonResponse({"status": "failed", "msg": serializer.errors}, status=400)
+                return response_value("failed", serializer.errors, "na", 400)
         except Exception as e:
-            return JsonResponse({"status": "failed", "msg": e}, status=500)
+            return response_value("failed", e, "na", 500)
     
+    @swagger_auto_schema(request_body=PerksSerializer)
     def delete(self, request, *args, **kwargs):
         data = json.loads(request.body)
-        count = Perks.objects.filter(perk=data["perks"]).delete()
-        return JsonResponse({'message': '{} perks were deleted successfully!'.format(count[0])}, status=status.HTTP_204_NO_CONTENT)
+        count = Perks.objects.filter(perk=data["perk"]).delete()
+        if count[0] != 0:
+            return response_value("success", "perk deleted", count[0], 200)
+        else:
+            return response_value("success", "no perk with that name: perk not deleted", count[0], 200)
     
+    @swagger_auto_schema(request_body=PerksUpdateSerializer)
     def put(self, request):
-        perk_data = JSONParser().parse(request)
-        perk_instance = Perks.objects.get(perk_id=perk_data["perk_id"])
-        perk_instance.perk = perk_data["perks"]
-        perk_instance.save()
-        return JsonResponse({"Status": "Perk updated successfully"})
+        data = JSONParser().parse(request)
+        try:
+            perk_instance = Perks.objects.get(perk=data["perkOld"])
+            perk_instance.perk = data["perkNew"]
+            perk_instance.save()
+            return response_value("success", "perk updated", perk_instance.id, 200)
+        except Perks.DoesNotExist:
+            return response_value("success", "no perk with that name: perk not updated", "na", 200)
 
 class JobsView(APIView):
     def get(self, request, *args, **kwargs):

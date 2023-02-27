@@ -33,6 +33,10 @@ class PerksSerializer(serializers.ModelSerializer):
         # fields = ("id", "perk")
         fields = ("__all__")
 
+class PerksUpdateSerializer(serializers.Serializer):
+    perkOld = serializers.CharField(max_length= 300)
+    perkNew = serializers.CharField(max_length= 300)
+
 class SpocSerializer(serializers.ModelSerializer):
     class Meta:
         model = Spoc
