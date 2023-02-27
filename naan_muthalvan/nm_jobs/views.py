@@ -11,6 +11,8 @@ from rest_framework import status
 from nm_jobs.serializers import *
 from django.core.exceptions import ObjectDoesNotExist
 
+from drf_yasg.utils import swagger_auto_schema
+
 import json
 import datetime
 
@@ -24,6 +26,7 @@ class PerksView(APIView):
         perks = list(perks)
         return JsonResponse({"status":"success", "msg":"perk data retrieved", "data":perks})
 
+    @swagger_auto_schema(request_body=PerksSerializer)
     def post(self, request, *args, **kwargs):
         try:
             data = JSONParser().parse(request)
