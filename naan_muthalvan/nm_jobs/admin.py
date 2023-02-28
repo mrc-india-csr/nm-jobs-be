@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Jobs, JobDetails, AddOns, Perks, Sector, Company, CompanySector, Spoc, Status, Internship
+from .models import *
 
 # Register your models here.
 admin.site.register(Jobs)
@@ -12,3 +12,6 @@ admin.site.register(CompanySector)
 admin.site.register(Company)
 admin.site.register(Spoc)
 admin.site.register(Internship)
+admin.site.register(CompanyDetails)
+admin.site.register(Files)
+admin.site.register(ImageTest)

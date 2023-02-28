@@ -95,25 +95,25 @@ class Spoc(Model):
     def __str__(self) -> str:
         return "companyId: "+str(self.company_id)
 
-# class files(Model):
-#     job_id = models.ForeignKey(Jobs, on_delete=models.CASCADE)
-#     file_name = models.CharField(max_length=200)
-#     upload_file = models.FileField("jobs/"+str(job_id)+"/"+file_name)
+class Files(Model):
+    job_id = models.ForeignKey(Jobs, on_delete=models.CASCADE)
+    file_name = models.CharField(max_length=200)
+    upload_file = models.BinaryField()
     
-#     def __str__(self) -> str:
-#         return str(self.job_id)
+    def __str__(self) -> str:
+        return str(self.job_id)
 
-# class CompanyDetails(Model):
-#     company_id = models.ForeignKey(Company, on_delete=models.CASCADE)
-#     file_name = models.CharField(max_length=200)
-#     image = models.ImageField("company/"+str(company_id)+"/"+file_name)
+class CompanyDetails(Model):
+    company_id = models.ForeignKey(Company, on_delete=models.CASCADE)
+    file_name = models.CharField(max_length=200)
+    image = models.BinaryField()
 
-#     def __str__(self) -> str:
-#         return str(self.company_id)
+    def __str__(self) -> str:
+        return str(self.company_id)
 
-class TestModelId(Model):
+class ImageTest(Model):
     name = models.CharField(max_length=100)
-    email = models.EmailField()
+    image = models.BinaryField()
 
     def __str__(self) -> str:
         return self.name

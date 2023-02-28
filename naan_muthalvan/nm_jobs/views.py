@@ -212,7 +212,7 @@ class InsertMultiple(APIView):
 
 def post_job(request):
     data = JSONParser().parse(request)
-    job_serialized, fulltime_serialized, internship_serialized = False
+    job_serialized = fulltime_serialized =  internship_serialized = False
 
     # fields = ("job_id", "job_type", "title", "description", "category", "link", "number_of_openings",
     #           "work_type", "location", "posted_by", "phone_no", "email")
@@ -286,14 +286,14 @@ def post_job(request):
         addon.perk_id_id=pid
         addon.save()
 
-    return JsonResponse({"status": "success", "msg":"job added successfully", "data":{"job_id":job_id}}, status=200)
+    return JsonResponse({"status": "success", "msg":"job added successfully", "data":{"job_id":job_id}}, status=201)
 
 class CreateProfile(APIView):
     def data_validator(self, body: dict):
         all_good = True
         message = "success"
-        list_of_fields = ["company_name", "description", "sectors", "location", "spoc"]
-        spoc_fields = ["name", "email", "phone_no"]
+        list_of_fields = ["companyName", "companyDescription", "sectors", "country", "city", "contactName", "contactEmail", "contactPhone"]
+        # spoc_fields = ["name", "email", "phone_no"]
         for field in list_of_fields:
             if field not in body.keys():
                 all_good = False
@@ -303,17 +303,21 @@ class CreateProfile(APIView):
             if (type(body["sectors"]) != list):
                 all_good = False
                 message =  "invalid format for sectors"
-            if (type(body["spoc"]) != dict):
-                all_good = False
-                message =  "invalid format for spoc"
-            if all_good:
-                for field in spoc_fields:
-                    print(field)
-                    if field not in (body["spoc"]).keys():
-                        all_good = False
-                        message = field+ " is missing"
-                        break
         return [all_good, message]
+    def delete_company(self, id):
+        try:
+            company_to_delete = Company.objects.get(id)
+            company_to_delete.delete()
+            print( "Company " +id+ " deleted")
+        except Exception as e:
+            print(e)
+    def delete_spoc(self, id):
+        try:
+            spoc_to_delete = Spoc.objects.get(id)
+            spoc_to_delete.delete()
+            print( "Spoc " +id+ " deleted")
+        except Exception as e:
+            print(e)
 
     def post(self, request):
         # tables to interact "company", "sector", "company_sector", "spoc"
@@ -322,31 +326,84 @@ class CreateProfile(APIView):
             validator = self.data_validator(json_body)
             if validator[0]:
                 #Company
-                company_data = {}
-                company_data["name"] = json_body["company_name"]
-                company_data["description"] = json_body["description"]
-                company_serializer = CompanySerializer(data=company_data)
-                if company_serializer.is_valid():
-                    company_response = company_serializer.save()
-                    company_id = company_response.id
-                sectors = json_body["sectors"]
+                try:
+                    company_data = {}
+                    company_data["name"] = json_body["companyName"]
+                    company_data["description"] = json_body["companyDescription"]
+                    company_serializer = CompanySerializer(data=company_data)
+                    if company_serializer.is_valid():
+                        company_response = company_serializer.save()
+                        company_id = company_response.id
+                except Exception as e:
+                    print(e)
+                    return JsonResponse({"status": "failed", "message": "Exception occured while creating job"}, status = 500)
 
                 #SPOC
-                spoc_data = json_body["spoc"]
-                spoc_data["company_id"] = company_id
-                spoc_serializer = SpocSerializer(data=spoc_data)
-                if spoc_serializer.is_valid():
-                    spoc_serializer.save()
-
-                #Company sectors    
-                sector_ids = Sector.objects.filter(department__in=sectors).values_list('id', flat=True)
-                for sid in sector_ids:
-                    company_sector = CompanySector()
-                    company_sector.company_id = company_id
-                    company_sector.sector_id = sid
-                    company_sector.save()    
+                try:
+                    spoc_data = json_body["spoc"]
+                    spoc_data["company_id"] = company_id
+                    spoc_serializer = SpocSerializer(data=spoc_data)
+                    if spoc_serializer.is_valid():
+                        spoc_response = spoc_serializer.save()
+                        spoc_id = spoc_response.id
+                except Exception as e:
+                    print(e)
+                    self.delete_company(company_id)
+                    return JsonResponse({"status": "failed", "message": "Exception occured while creating Spoc"}, status = 500)
+                
+                #Company sectors   
+                try: 
+                    sectors = json_body["sectors"]
+                    sector_ids = Sector.objects.filter(department__in=sectors).values_list('id', flat=True)
+                    for sid in sector_ids:
+                        company_sector = CompanySector()
+                        company_sector.company_id = company_id
+                        company_sector.sector_id = sid
+                        company_sector.save()    
+                except Exception as e:
+                    print(e)
+                    self.delete_spoc(spoc_id)
+                    return JsonResponse({"status": "failed", "message": "Exception occured while creating company sectors"}, status = 500)
 
             return JsonResponse({"status": "failed", "message": validator[1]})
 
         except Exception as e:
+            print(e)
             return JsonResponse({"status": "failed", "msg": "internal server error"}, status=500)
+        
+class StoreImg(APIView):
+    def post(self, request):
+        data = JSONParser().parse(request)
+        img_data = {"name": data["name"]}
+        # img_data["image"]= data["binary_data"]
+        img_data["image"] = convert_To_Binary("nm_jobs/test.jpg")
+        img_serializer = ImgSerializer(data=img_data)
+        if img_serializer.is_valid():
+            response = img_serializer.save()
+            print("Image saved")
+        else:
+            print(img_serializer.errors)
+        return JsonResponse({"status": "success", "img_id": response.id})
+    
+    def get(self, request):
+        binary_img = ImageTest.objects.get(id = "d27ec91c-40ae-4260-b97c-c6661c46b55a")
+        serializer = ImgSerializer(binary_img)
+        if serializer.data:
+            print(serializer.data)
+            binary_to_file(serializer.data["image"], "achu.txt")
+        return JsonResponse({"msg":"success"})
+  
+def convert_To_Binary(filename):
+    with open(filename, 'rb') as file:
+        data = file.read()
+    return data
+
+def binary_to_file(BLOB, FileName):
+    try:
+        with open(f"{FileName}", 'wb') as file:
+            file.write(BLOB)
+        print("achu.jpg stored")
+        return "All done"
+    except Exception as e:
+        print(e)
+        return "Failed"
