@@ -35,7 +35,8 @@ class PerksView(APIView):
             data = JSONParser().parse(request)
             serializer = PerksSerializer(data=data)
             if serializer.is_valid():
-                serializer.save()
+                print(serializer)
+                # serializer.save()
                 return response_value("success", "perk inserted", serializer.data, 200)
             else:
                 return response_value("failed", serializer.errors, "na", 400)
@@ -229,11 +230,13 @@ class InsertMultiple(APIView):
 
 def post_job(request):
     data = JSONParser().parse(request)
-    job_serialized, fulltime_serialized, internship_serialized = False
+    job_serialized = False
+    fulltime_serialized = False
+    internship_serialized = False
 
     # fields = ("job_id", "job_type", "title", "description", "category", "link", "number_of_openings",
     #           "work_type", "location", "posted_by", "phone_no", "email")
-    job_id = ""
+    job_id = "999-temp"
     job_data = {}
     job_data["job_type"] = data["jobType"]
     job_data["title"] = data["title"]
@@ -252,6 +255,7 @@ def post_job(request):
         if job_serializer.is_valid():
             job = job_serializer.save()
             job_id = job.id
+            pass
         else:
             return JsonResponse({"status": "failed", "msg": job_serializer.errors}, status=400)
     except Exception as e:
@@ -280,10 +284,10 @@ def post_job(request):
         internship_data = {}
         internship_data["job_id"] = job_id
         internship_data["is_pre_placement_offer"] = data["isPPO"]
-        internship_data["stipend"] = data["stipendType"]
+        internship_data["stipend"] = data["salary"]
+        internship_data["currency"] = data["salaryCurrency"]
         internship_data["date_range"] = data["salaryTerm"]
         internship_data["duration"] = data["duration"]
-        internship_data["currency"] = data["salary"]
 
         try:
             intern_serializer = InternshipSerializer(data=internship_data)
