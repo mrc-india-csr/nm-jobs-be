@@ -67,18 +67,19 @@ class CompanyDetailsSerializer(serializers.ModelSerializer):
         #fields = ("file_name", "image")
         fields = ("__all__")
 
-class FilesSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Files
-        #fields = ("file_name", "upload_file")
-        fields = ("__all__")
-
 class BinaryField(serializers.Field):
     def to_representation(self, value):
         return value
 
     def to_internal_value(self, value):
          return value
+    
+class FilesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Files
+        #fields = ("job_id", "file_name", "upload_file")
+        fields = ("job_id", "file_name", "upload_file")
+    upload_file = BinaryField()
     
 class ImgSerializer(serializers.ModelSerializer):
     class Meta:

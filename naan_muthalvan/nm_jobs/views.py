@@ -255,11 +255,23 @@ def post_job(request):
         if job_serializer.is_valid():
             job = job_serializer.save()
             job_id = job.id
-            pass
         else:
             return JsonResponse({"status": "failed", "msg": job_serializer.errors}, status=400)
     except Exception as e:
         return JsonResponse({"status": "failed", "msg": e}, status=500)
+
+    if data["descFile"]!= "null":
+        file_data = {}
+        file_data["job_id"] = job_id
+        byte_array = data["descFile"]
+        file_data["file_name"] = data["title"]
+        file_data["upload_file"] = bytes(byte_array)
+        # print(file_data["upload_file"])
+        file_serializer = FilesSerializer(data=file_data)
+        if file_serializer.is_valid():
+            file_serializer.save()
+        else:
+            return JsonResponse({"status": "Failed", "message": serializers.errors}, status = 400)
 
     if data["jobType"] == "Fulltime":
         # fields = ("job_id", "date_range", "currency", "max_salary", "min_salary", "experience")
@@ -399,6 +411,7 @@ class StoreImg(APIView):
         img_data = {"name": data["name"]}
         # img_data["image"]= data["binary_data"]
         img_data["image"] = convert_To_Binary("nm_jobs/test.jpg")
+        print(img_data)
         img_serializer = ImgSerializer(data=img_data)
         if img_serializer.is_valid():
             response = img_serializer.save()
@@ -408,12 +421,12 @@ class StoreImg(APIView):
         return JsonResponse({"status": "success", "img_id": response.id})
     
     def get(self, request):
-        binary_img = ImageTest.objects.get(id = "d27ec91c-40ae-4260-b97c-c6661c46b55a")
+        binary_img = ImageTest.objects.get(id = "b0214849b8ab4a529f78d7a29f599026")
         serializer = ImgSerializer(binary_img)
         if serializer.data:
-            print(serializer.data)
-            binary_to_file(serializer.data["image"], "achu.txt")
-        return JsonResponse({"msg":"success"})
+            # print(serializer.data)
+            # binary_to_file(serializer.data["image"], "achu.txt")
+            return JsonResponse({"msg":"success","byte_array": list(serializer.data["image"])})
   
 def convert_To_Binary(filename):
     with open(filename, 'rb') as file:
