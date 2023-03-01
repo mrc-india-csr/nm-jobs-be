@@ -384,6 +384,7 @@ class CreateProfile(APIView):
                 except Exception as e:
                     print(e)
                     self.delete_spoc(spoc_id)
+                    self.delete_company(company_id)
                     return JsonResponse({"status": "failed", "message": "Exception occured while creating company sectors"}, status = 500)
 
             return JsonResponse({"status": "failed", "message": validator[1]})
