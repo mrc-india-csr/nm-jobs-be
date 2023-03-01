@@ -35,8 +35,7 @@ class PerksView(APIView):
             data = JSONParser().parse(request)
             serializer = PerksSerializer(data=data)
             if serializer.is_valid():
-                print(serializer)
-                # serializer.save()
+                serializer.save()
                 return response_value("success", "perk inserted", serializer.data, 200)
             else:
                 return response_value("failed", serializer.errors, "na", 400)
