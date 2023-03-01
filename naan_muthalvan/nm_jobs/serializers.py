@@ -60,3 +60,30 @@ class CompanySectorSerializer(serializers.ModelSerializer):
         model = CompanySector
         # fields = ("sector_id", "company_id")
         fields = ("__all__")
+
+class CompanyDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyDetails
+        #fields = ("file_name", "image")
+        fields = ("__all__")
+
+class BinaryField(serializers.Field):
+    def to_representation(self, value):
+        return value
+
+    def to_internal_value(self, value):
+         return value
+    
+class FilesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Files
+        #fields = ("job_id", "file_name", "upload_file")
+        fields = ("job_id", "file_name", "upload_file")
+    upload_file = BinaryField()
+    
+class ImgSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ImageTest
+        fields = ("name", "image")
+        # fields = ("name")
+    image = BinaryField()
