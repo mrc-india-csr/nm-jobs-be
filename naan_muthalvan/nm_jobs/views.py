@@ -404,7 +404,16 @@ class CreateProfile(APIView):
         except Exception as e:
             print(e)
             return JsonResponse({"status": "failed", "msg": "internal server error"}, status=500)
-        
+
+class FilesView(APIView):
+    def get(self, request):
+        files = Files.objects.values_list("file_name", "upload_file")
+        files = list(files)
+        response_data = {}
+        for file in files:
+            response_data[file[0]] = list(file[1])
+        return response_value("success", "retrieved perks data", response_data, 200)
+ 
 class StoreImg(APIView):
     def post(self, request):
         data = JSONParser().parse(request)
