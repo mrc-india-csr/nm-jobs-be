@@ -1,21 +1,16 @@
+import json, uuid, datetime, logging
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.http import HttpResponse, JsonResponse
-
+from rest_framework.parsers import JSONParser 
+from django.http import JsonResponse
+from django.core.exceptions import ObjectDoesNotExist
+from drf_yasg.utils import swagger_auto_schema
 from .models import *
 from nm_jobs.serializers import *
-
-from rest_framework.views import APIView
-from rest_framework.parsers import JSONParser 
-from rest_framework import status
 from nm_jobs.serializers import *
-from django.core.exceptions import ObjectDoesNotExist
 
-from drf_yasg.utils import swagger_auto_schema
-
-import json, uuid
-import datetime
-
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO, datefmt='%d-%b-%y %H:%M:%S')
+logger = logging.getLogger("Naan_Muthalvan_logger")
 
 def health_response():
     return JsonResponse({"status":"success", "msg":"nm backend is up and running"}, status=200)
@@ -170,7 +165,7 @@ class CompanyList(APIView):
             else:
                 return JsonResponse({"status": "failed", "msg": serializer.errors}, status=400)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return JsonResponse({"status": "failed", "msg": "internal server error"}, status=500)
 
 class CompanyWithName(APIView):
@@ -275,7 +270,6 @@ def post_job(request):
         byte_array = data["descFile"]
         file_data["file_name"] = data["title"]
         file_data["upload_file"] = bytes(byte_array)
-        # print(file_data["upload_file"])
         file_serializer = FilesSerializer(data=file_data)
         if file_serializer.is_valid():
             file_serializer.save()
@@ -347,8 +341,8 @@ class CreateProfile(APIView):
             company_to_delete = Company.objects.get(id=company_id)
             company_to_delete.delete()
         except ObjectDoesNotExist:
-            print("company with "+str(company_id) + " doesn't exist")
-        print( "Company " +str(company_id)+ " deleted")
+            logger.error("company with "+str(company_id) + " doesn't exist")
+        logger.info( "Company " +str(company_id)+ " deleted")
 
     def post(self, request):
         # tables to interact "company", "sector", "company_sector", "spoc"
@@ -359,16 +353,14 @@ class CreateProfile(APIView):
                 company_id = uuid.uuid4()
                 #Company
                 try:
-                    company_data = {"id": company_id}
-                    company_data["name"] = json_body["companyName"]
-                    company_data["description"] = json_body["companyDescription"]
+                    company_data = {"id": company_id, "name": json_body["companyName"], "description": json_body["companyDescription"]}
                     company_serializer = CompanySerializer(data=company_data)
                     if company_serializer.is_valid():
                         company_serializer.save()
                     else:
                         return JsonResponse({"status": "failed", "message": company_serializer.errors}, status = 400)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return JsonResponse({"status": "failed", "message": "Exception occured while creating company", "error": e.__class__.__name__}, status = 500)
 
                 #SPOC
@@ -386,17 +378,14 @@ class CreateProfile(APIView):
                         self.delete_company(company_id)
                         return JsonResponse({"status": "failed", "message": spoc_serializer.errors}, status = 400)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     self.delete_company(company_id)
                     return JsonResponse({"status": "failed", "message": "Exception occured while creating Spoc", "error": e.__class__.__name__}, status = 500)
             
                 #Company details(image)
                 try:
                     if json_body["profileImage"]!="null":
-                        company_details = {}
-                        company_details["company_id"] = company_id
-                        company_details["file_name"] = json_body["companyName"]
-                        company_details["image"] = bytes(json_body["profileImage"])
+                        company_details = {"company_id": company_id, "file_name": json_body["companyName"], "image": bytes(json_body["profileImage"])}
                         image_serializer = CompanyDetailsSerializer(data=company_details)
                         if image_serializer.is_valid():
                             image_serializer.save()
@@ -404,7 +393,7 @@ class CreateProfile(APIView):
                             self.delete_company(company_id)
                             return JsonResponse({"status": "failed", "message": image_serializer.errors}, status = 400)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     self.delete_company(company_id)
                     return JsonResponse({"status": "failed", "message": "Exception occured while inserting profile image", "error": e.__class__.__name__}, status = 500)
                 
@@ -426,7 +415,7 @@ class CreateProfile(APIView):
                         self.delete_company(company_id)
                         return JsonResponse({"status": "failed", "message": company_sector_serializer.errors}, status = 400)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     self.delete_company(company_id)
                     return JsonResponse({"status": "failed", "message": "Exception occured while creating company sectors", "error": e.__class__.__name__}, status = 500)
             
@@ -435,7 +424,7 @@ class CreateProfile(APIView):
                 return JsonResponse({"status": "failed", "msg": validator[1]}, status=422)
                 
         except Exception as e:
-            print(e)
+            logger.error(e)
             return JsonResponse({"status": "failed", "msg": "internal server error", "error": e.__class__.__name__}, status=500)
 
 class FilesView(APIView):
@@ -453,21 +442,18 @@ class StoreImg(APIView):
         img_data = {"name": data["name"]}
         # img_data["image"]= data["binary_data"]
         img_data["image"] = convert_To_Binary("nm_jobs/test.jpg")
-        print(img_data)
         img_serializer = ImgSerializer(data=img_data)
         if img_serializer.is_valid():
             response = img_serializer.save()
-            print("Image saved")
+            logger.info("Image saved")
         else:
-            print(img_serializer.errors)
+            logger.error(img_serializer.errors)
         return JsonResponse({"status": "success", "img_id": response.id})
     
     def get(self, request):
         binary_img = ImageTest.objects.get(id = "b0214849b8ab4a529f78d7a29f599026")
         serializer = ImgSerializer(binary_img)
         if serializer.data:
-            # print(serializer.data)
-            # binary_to_file(serializer.data["image"], "achu.txt")
             return JsonResponse({"msg":"success","byte_array": list(serializer.data["image"])})
   
 def convert_To_Binary(filename):
