@@ -13,7 +13,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from drf_yasg.utils import swagger_auto_schema
 
-import json
+import json, uuid
 import datetime
 
 
@@ -242,9 +242,6 @@ class InsertMultiple(APIView):
 
 def post_job(request):
     data = JSONParser().parse(request)
-    job_serialized = False
-    fulltime_serialized =  False
-    internship_serialized = False
 
     # fields = ("job_id", "job_type", "title", "description", "category", "link", "number_of_openings",
     #           "work_type", "location", "posted_by", "phone_no", "email")
@@ -338,61 +335,41 @@ class CreateProfile(APIView):
         all_good = True
         message = "success"
         list_of_fields = ["companyName", "companyDescription", "sector", "country", "city", "contactName", "contactEmail", "contactPhone", "profileImage"]
-        # spoc_fields = ["name", "email", "phone_no"]
         for field in list_of_fields:
             if field not in body.keys():
                 all_good = False
                 message = field+ " is missing"
                 break
-        # if all_good:
-        #     if (type(body["sectors"]) != list):
-        #         all_good = False
-        #         message =  "invalid format for sectors"
         return [all_good, message]
     
-    def delete_company(self, id):
+    def delete_company(self, company_id):
         try:
-            company_to_delete = Company.objects.get(id)
+            company_to_delete = Company.objects.get(id=company_id)
             company_to_delete.delete()
-            print( "Company " +id+ " deleted")
-        except Exception as e:
-            print(e)
-    def delete_spoc(self, id):
-        try:
-            spoc_to_delete = Spoc.objects.get(id)
-            spoc_to_delete.delete()
-            print( "Spoc " +id+ " deleted")
-        except Exception as e:
-            print(e)
-    def delete_image(self, id):
-        try:
-            image_to_delete = CompanyDetails.objects.get(id)
-            image_to_delete.delete()
-            print( "Image " +id+ " deleted")
-        except Exception as e:
-            print(e)
+        except ObjectDoesNotExist:
+            print("company with "+str(company_id) + " doesn't exist")
+        print( "Company " +str(company_id)+ " deleted")
 
     def post(self, request):
         # tables to interact "company", "sector", "company_sector", "spoc"
         try:
             json_body = JSONParser().parse(request)
-            company_id = ""
-            spoc_id = ""
-            sector_id = ""
             validator = self.data_validator(json_body)
             if validator[0]:
+                company_id = uuid.uuid4()
                 #Company
                 try:
-                    company_data = {}
+                    company_data = {"id": company_id}
                     company_data["name"] = json_body["companyName"]
                     company_data["description"] = json_body["companyDescription"]
                     company_serializer = CompanySerializer(data=company_data)
                     if company_serializer.is_valid():
-                        company_response = company_serializer.save()
-                        company_id = company_response.id
+                        company_serializer.save()
+                    else:
+                        return JsonResponse({"status": "failed", "message": company_serializer.errors}, status = 400)
                 except Exception as e:
                     print(e)
-                    return JsonResponse({"status": "failed", "message": "Exception occured while creating job"}, status = 500)
+                    return JsonResponse({"status": "failed", "message": "Exception occured while creating company", "error": e.__class__.__name__}, status = 500)
 
                 #SPOC
                 try:
@@ -404,32 +381,41 @@ class CreateProfile(APIView):
                     }
                     spoc_serializer = SpocSerializer(data=spoc_data)
                     if spoc_serializer.is_valid():
-                        spoc_response = spoc_serializer.save()
-                        spoc_id = spoc_response.id
+                        spoc_serializer.save()
+                    else:
+                        self.delete_company(company_id)
+                        return JsonResponse({"status": "failed", "message": spoc_serializer.errors}, status = 400)
                 except Exception as e:
                     print(e)
                     self.delete_company(company_id)
-                    return JsonResponse({"status": "failed", "message": "Exception occured while creating Spoc"}, status = 500)
+                    return JsonResponse({"status": "failed", "message": "Exception occured while creating Spoc", "error": e.__class__.__name__}, status = 500)
             
                 #Company details(image)
                 try:
-                    company_details = {}
-                    company_details["company_id"] = company_id
-                    company_details["file_name"] = json_body["companyName"]
-                    company_details["image"] = bytes(json_body["profileImage"])
-                    image_serializer = CompanyDetailsSerializer(data=company_details)
-                    if image_serializer.is_valid():
-                        image_serializer.save()
+                    if json_body["profileImage"]!="null":
+                        company_details = {}
+                        company_details["company_id"] = company_id
+                        company_details["file_name"] = json_body["companyName"]
+                        company_details["image"] = bytes(json_body["profileImage"])
+                        image_serializer = CompanyDetailsSerializer(data=company_details)
+                        if image_serializer.is_valid():
+                            image_serializer.save()
+                        else:
+                            self.delete_company(company_id)
+                            return JsonResponse({"status": "failed", "message": image_serializer.errors}, status = 400)
                 except Exception as e:
                     print(e)
-                    self.delete_spoc(spoc_id)
                     self.delete_company(company_id)
-                    return JsonResponse({"status": "failed", "message": "Exception occured while inserting profile image"}, status = 500)
+                    return JsonResponse({"status": "failed", "message": "Exception occured while inserting profile image", "error": e.__class__.__name__}, status = 500)
                 
                 #Company sectors   
                 try: 
                     sector_name = json_body["sector"]
-                    sector_data = Sector.objects.get(department= sector_name)
+                    try:
+                        sector_data = Sector.objects.get(department= sector_name)
+                    except ObjectDoesNotExist:
+                        self.delete_company(company_id)
+                        return JsonResponse({"status": "failed", "message": "sector '"+sector_name + "' does not exist"}, status = 400)
                     sector_id = sector_data.id
                     company_id_for_sector = company_id
                     company_sector = {"company_id": company_id_for_sector, "sector_id": sector_id}
@@ -437,26 +423,20 @@ class CreateProfile(APIView):
                     if company_sector_serializer.is_valid():
                         company_sector_serializer.save()
                     else:
-                        print(company_sector_serializer.errors)
-                    
-                    # sectors = json_body["sectors"]
-                    # sector_ids = Sector.objects.filter(department__in=sectors).values_list('id', flat=True)
-                    # for sid in sector_ids:
-                    #     company_sector = CompanySector()
-                    #     company_sector.company_id = company_id
-                    #     company_sector.sector_id = sid
-                    #     company_sector.save()    
+                        self.delete_company(company_id)
+                        return JsonResponse({"status": "failed", "message": company_sector_serializer.errors}, status = 400)
                 except Exception as e:
                     print(e)
-                    self.delete_spoc(spoc_id)
                     self.delete_company(company_id)
-                    self.delete_image(company_id)
-                    return JsonResponse({"status": "failed", "message": "Exception occured while creating company sectors"}, status = 500)
-            return JsonResponse({"status": "success", "message": {"company_id" : company_id}})
-
+                    return JsonResponse({"status": "failed", "message": "Exception occured while creating company sectors", "error": e.__class__.__name__}, status = 500)
+            
+                return JsonResponse({"status": "success", "message": {"company_id" : company_id}})
+            else:
+                return JsonResponse({"status": "failed", "msg": validator[1]}, status=422)
+                
         except Exception as e:
             print(e)
-            return JsonResponse({"status": "failed", "msg": "internal server error"}, status=500)
+            return JsonResponse({"status": "failed", "msg": "internal server error", "error": e.__class__.__name__}, status=500)
 
 class FilesView(APIView):
     def get(self, request):

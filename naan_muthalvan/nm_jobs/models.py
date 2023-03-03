@@ -90,7 +90,7 @@ class Spoc(Model):
     company_id = models.OneToOneField(Company, on_delete=models.CASCADE)
     name = models.CharField(max_length = 100)
     phone_no = models.BigIntegerField()
-    email = models.EmailField(max_length = 200, unique=True)
+    email = models.EmailField(max_length = 200)
     
     def __str__(self) -> str:
         return "companyId: "+str(self.company_id)

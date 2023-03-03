@@ -13,4 +13,5 @@ urlpatterns = [
     re_path(r'^image/?$', StoreImg.as_view()),
     re_path(r'^company_files/?$', FilesView.as_view()),
     re_path(r'^sectors/?$', SectorView.as_view()),
+    re_path(r'/?$', JobsView.as_view()),
 ]
