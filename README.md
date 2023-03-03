@@ -1,5 +1,5 @@
 # Intro
-This is a REST framework built on Python we use to serve as internal API service
+This is a REST framework built on Python to serve as internal API service
 
 # Pre-requisites
     - Python (version greater than 3)
@@ -7,7 +7,7 @@ This is a REST framework built on Python we use to serve as internal API service
 # Steps to run the service in local
     ```pip install -r requirements.txt```
     
-    - Open the folder naan_muthalvan 
+    - Goto the directory naan_muthalvan 
     ```python manage.py makemigrations && python manage.py migrate```
 
     ```python manage.py runserver```
