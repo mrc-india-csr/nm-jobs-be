@@ -424,15 +424,15 @@ class CreateProfile(APIView):
                     print(e)
                     self.delete_spoc(spoc_id)
                     self.delete_company(company_id)
-                    return JsonResponse({"status": "failed", "message": "Exception occured while creating company sectors"}, status = 500)
+                    return JsonResponse({"status": "failed", "message": "Exception occured while inserting profile image"}, status = 500)
                 
                 #Company sectors   
                 try: 
                     sector_name = json_body["sector"]
                     sector_data = Sector.objects.get(department= sector_name)
                     sector_id = sector_data.id
-
-                    company_sector = {"company_id": company_id, "sector_id": sector_id}
+                    company_id_for_sector = company_id
+                    company_sector = {"company_id": company_id_for_sector, "sector_id": sector_id}
                     company_sector_serializer = CompanySectorSerializer(data=company_sector)
                     if company_sector_serializer.is_valid():
                         company_sector_serializer.save()
@@ -452,7 +452,7 @@ class CreateProfile(APIView):
                     self.delete_company(company_id)
                     self.delete_image(company_id)
                     return JsonResponse({"status": "failed", "message": "Exception occured while creating company sectors"}, status = 500)
-            return JsonResponse({"status": "success", "message": {"company_id": +str(company_id)}})
+            return JsonResponse({"status": "success", "message": {"company_id" : company_id}})
 
         except Exception as e:
             print(e)
