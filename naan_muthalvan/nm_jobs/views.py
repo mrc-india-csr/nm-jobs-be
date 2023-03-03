@@ -23,6 +23,19 @@ def health_response():
 def response_value(status, msg, data, code):
     return JsonResponse({"status":status, "msg":msg, "data":data}, status=code)
 
+class SectorView(APIView):
+    def post(self, request):
+        try:
+            data = JSONParser().parse(request)
+            sector_serializer = SectorSerializer(data=data)
+            if sector_serializer.is_valid():
+                sector_serializer.save()
+                return response_value("success", "sector inserted", sector_serializer.data, 200)
+            else:
+                return response_value("failed", sector_serializer.errors, "NA", 400)
+        except Exception as e:
+            return response_value("failed", e.__class__.__name__, "na", 500)
+
 class PerksView(APIView):    
     def get(self, request, *args, **kwargs):
         perks = Perks.objects.values_list("perk", flat=True)
@@ -324,18 +337,19 @@ class CreateProfile(APIView):
     def data_validator(self, body: dict):
         all_good = True
         message = "success"
-        list_of_fields = ["companyName", "companyDescription", "sectors", "country", "city", "contactName", "contactEmail", "contactPhone"]
+        list_of_fields = ["companyName", "companyDescription", "sector", "country", "city", "contactName", "contactEmail", "contactPhone", "profileImage"]
         # spoc_fields = ["name", "email", "phone_no"]
         for field in list_of_fields:
             if field not in body.keys():
                 all_good = False
                 message = field+ " is missing"
                 break
-        if all_good:
-            if (type(body["sectors"]) != list):
-                all_good = False
-                message =  "invalid format for sectors"
+        # if all_good:
+        #     if (type(body["sectors"]) != list):
+        #         all_good = False
+        #         message =  "invalid format for sectors"
         return [all_good, message]
+    
     def delete_company(self, id):
         try:
             company_to_delete = Company.objects.get(id)
@@ -350,11 +364,21 @@ class CreateProfile(APIView):
             print( "Spoc " +id+ " deleted")
         except Exception as e:
             print(e)
+    def delete_image(self, id):
+        try:
+            image_to_delete = CompanyDetails.objects.get(id)
+            image_to_delete.delete()
+            print( "Image " +id+ " deleted")
+        except Exception as e:
+            print(e)
 
     def post(self, request):
         # tables to interact "company", "sector", "company_sector", "spoc"
         try:
             json_body = JSONParser().parse(request)
+            company_id = ""
+            spoc_id = ""
+            sector_id = ""
             validator = self.data_validator(json_body)
             if validator[0]:
                 #Company
@@ -372,8 +396,12 @@ class CreateProfile(APIView):
 
                 #SPOC
                 try:
-                    spoc_data = json_body["spoc"]
-                    spoc_data["company_id"] = company_id
+                    spoc_data = {
+                        "name": json_body["contactName"],
+                        "email": json_body["contactEmail"], 
+                        "phone_no": json_body["contactPhone"],
+                        "company_id": company_id
+                    }
                     spoc_serializer = SpocSerializer(data=spoc_data)
                     if spoc_serializer.is_valid():
                         spoc_response = spoc_serializer.save()
@@ -382,23 +410,49 @@ class CreateProfile(APIView):
                     print(e)
                     self.delete_company(company_id)
                     return JsonResponse({"status": "failed", "message": "Exception occured while creating Spoc"}, status = 500)
-                
-                #Company sectors   
-                try: 
-                    sectors = json_body["sectors"]
-                    sector_ids = Sector.objects.filter(department__in=sectors).values_list('id', flat=True)
-                    for sid in sector_ids:
-                        company_sector = CompanySector()
-                        company_sector.company_id = company_id
-                        company_sector.sector_id = sid
-                        company_sector.save()    
+            
+                #Company details(image)
+                try:
+                    company_details = {}
+                    company_details["company_id"] = company_id
+                    company_details["file_name"] = json_body["companyName"]
+                    company_details["image"] = bytes(json_body["profileImage"])
+                    image_serializer = CompanyDetailsSerializer(data=company_details)
+                    if image_serializer.is_valid():
+                        image_serializer.save()
                 except Exception as e:
                     print(e)
                     self.delete_spoc(spoc_id)
                     self.delete_company(company_id)
                     return JsonResponse({"status": "failed", "message": "Exception occured while creating company sectors"}, status = 500)
+                
+                #Company sectors   
+                try: 
+                    sector_name = json_body["sector"]
+                    sector_data = Sector.objects.get(department= sector_name)
+                    sector_id = sector_data.id
 
-            return JsonResponse({"status": "failed", "message": validator[1]})
+                    company_sector = {"company_id": company_id, "sector_id": sector_id}
+                    company_sector_serializer = CompanySectorSerializer(data=company_sector)
+                    if company_sector_serializer.is_valid():
+                        company_sector_serializer.save()
+                    else:
+                        print(company_sector_serializer.errors)
+                    
+                    # sectors = json_body["sectors"]
+                    # sector_ids = Sector.objects.filter(department__in=sectors).values_list('id', flat=True)
+                    # for sid in sector_ids:
+                    #     company_sector = CompanySector()
+                    #     company_sector.company_id = company_id
+                    #     company_sector.sector_id = sid
+                    #     company_sector.save()    
+                except Exception as e:
+                    print(e)
+                    self.delete_spoc(spoc_id)
+                    self.delete_company(company_id)
+                    self.delete_image(company_id)
+                    return JsonResponse({"status": "failed", "message": "Exception occured while creating company sectors"}, status = 500)
+            return JsonResponse({"status": "success", "message": {"company_id": +str(company_id)}})
 
         except Exception as e:
             print(e)
