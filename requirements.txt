@@ -1,3 +1,4 @@
 psycopg2-binary
 django-cors-headers
 drf-yasg
+django-debug-toolbar

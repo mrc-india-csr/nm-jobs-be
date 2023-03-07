@@ -427,14 +427,23 @@ class CreateProfile(APIView):
             logger.error(e)
             return JsonResponse({"status": "failed", "msg": "internal server error", "error": e.__class__.__name__}, status=500)
 
-class FilesView(APIView):
+class JobFilesView(APIView):
     def get(self, request):
         files = Files.objects.values_list("file_name", "upload_file")
         files = list(files)
         response_data = {}
         for file in files:
             response_data[file[0]] = list(file[1])
-        return response_value("success", "retrieved perks data", response_data, 200)
+        return response_value("success", "retrieved job files", response_data, 200)
+
+class CompanyImageView(APIView):
+    def get(self, request):
+        files = CompanyDetails.objects.values_list("file_name", "image")
+        files = list(files)
+        response_data = {}
+        for file in files:
+            response_data[file[0]] = list(file[1])
+        return response_value("success", "retrieved company images", response_data, 200)
  
 class StoreImg(APIView):
     def post(self, request):
