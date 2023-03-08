@@ -72,10 +72,65 @@ class PerksView(APIView):
 
 class JobsView(APIView):
     def get(self, request, *args, **kwargs):
-        jobs = Jobs.objects.values_list("job_type", "title", "description", "category", "link", "number_of_openings",
-              "work_type", "location", "posted_by", "phone_no", "email")
-        jobs = list(jobs)
-        return JsonResponse({"status":"success", "msg":"perk data retrieved", "data":jobs})
+        # jobs = Jobs.objects.values_list("job_type", "title", "description", "category", "link", "number_of_openings",
+        #       "work_type", "location", "posted_by", "phone_no", "email")
+        # jobs = list(jobs)
+
+        # jobs = JobDetails.objects.select_related().all()
+        # for i in jobs:
+        #     print(i.job_id.job_type)
+        # print(jobs)
+        def dictfetchall(cursor): 
+            "Returns all rows from a cursor as a dict" 
+            desc = cursor.description 
+            return [
+                    dict(zip([col[0] for col in desc], row)) 
+                    for row in cursor.fetchall() 
+                    ]
+
+        from django.db import connection
+        with connection.cursor() as cursor:
+            fulltime_query = """
+                select 
+                    job.title,
+                    job.job_type,
+                    jd.experience,
+                    job.category,
+                    job.location,
+                    stat.application_received,
+                    cast(stat.date_posted as varchar) as date_posted,
+                    cast(stat.to_date as varchar) as to_date,
+                    job.posted_by
+                from nm_jobs_jobs as job
+                inner join nm_jobs_jobdetails as jd on job.id = jd.job_id_id
+                inner join nm_jobs_status as stat on job.id = stat.job_id_id
+            """
+            cursor.execute(fulltime_query)
+            # res = cursor.fetchall()
+            fulltime_jobs = dictfetchall(cursor)
+
+            intern_query = """
+                select 
+                    job.title,
+                    job.job_type,
+                    job.category,
+                    job.location,
+                    stat.application_received,
+                    cast(stat.date_posted as varchar) as date_posted,
+                    cast(stat.to_date as varchar) as to_date,
+                    job.posted_by
+                from nm_jobs_jobs as job
+                inner join nm_jobs_internship as int on job.id = int.job_id_id
+                inner join nm_jobs_status as stat on job.id = stat.job_id_id
+            """
+            cursor.execute(intern_query)
+            # res = cursor.fetchall()
+            intern_jobs = dictfetchall(cursor)
+
+            result = fulltime_jobs + intern_jobs
+            return response_value("success", "jobs retrieved", result, 200)
+
+        return JsonResponse({"status":"success", "msg":"jobs retrieved", "data":"na"})
 
     def post(self, request, *args, **kwargs):
         try:
@@ -102,7 +157,7 @@ class JobsView(APIView):
 
 class CompanyView(APIView):    
     def get(self, request, *args, **kwargs):
-        company = Company.objects.all()
+        company = Company.objects.values_list("name", flat=True)
         company = list(company)
         return JsonResponse({"status":"success", "msg":"company data retrieved", "data":company})    
 
@@ -121,12 +176,15 @@ class CompanyView(APIView):
 class SpocView(APIView):    
     def get(self, request, *args, **kwargs):
         spoc = Spoc.objects.values_list("name", "phone_no", "email")
-        data = dict()
-        data["name"] = spoc[0][0]
-        data["phone_no"] = spoc[0][1]
-        data["email"] = spoc[0][2]
-        # spoc = list(itertools.chain(*spoc))
-        return JsonResponse({"status":"success", "msg":"spoc data retrieved", "data":data})    
+        if len(spoc) > 0:
+            data = dict()
+            data["name"] = spoc[0][0]
+            data["phone_no"] = spoc[0][1]
+            data["email"] = spoc[0][2]
+            # spoc = list(itertools.chain(*spoc))
+            return response_value("success", "spoc data retrieved", data, 200)   
+        else:
+            return response_value("failed", "no spoc registered", "na", 200) 
 
     def post(self, request, *args, **kwargs):
         try:
@@ -238,33 +296,37 @@ class InsertMultiple(APIView):
 def post_job(request):
     data = JSONParser().parse(request)
 
-    # fields = ("job_id", "job_type", "title", "description", "category", "link", "number_of_openings",
-    #           "work_type", "location", "posted_by", "phone_no", "email")
-    job_id = "999-temp"
-    job_data = {}
-    job_data["job_type"] = data["jobType"]
-    job_data["title"] = data["title"]
-    job_data["description"] = data["description"]
-    job_data["category"] = data["category"]
-    job_data["link"] = data["link"]
-    job_data["number_of_openings"] = data["numberOfOpenings"]
-    job_data["work_type"] = data["workModel"]
-    job_data["location"] = data["location"]
-    job_data["posted_by"] = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    job_data["phone_no"] = data["contactPhone"]
-    job_data["email"] = data["contactEmail"]
+    job_id = ""
 
+    # insert job details
     try:
+        # fields = ("job_id", "job_type", "title", "description", "category", "link", "number_of_openings",
+        #           "work_type", "location", "posted_by", "phone_no", "email")
+        job_data = {}
+        job_data["job_type"] = data["jobType"]
+        job_data["title"] = data["title"]
+        job_data["description"] = data["description"]
+        job_data["category"] = data["category"]
+        job_data["link"] = data["link"]
+        job_data["number_of_openings"] = data["numberOfOpenings"]
+        job_data["work_type"] = data["workModel"]
+        job_data["location"] = data["location"]
+        # job_data["posted_by"] = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        job_data["posted_by"] = data["contactName"]
+        job_data["phone_no"] = data["contactPhone"]
+        job_data["email"] = data["contactEmail"]
+
         job_serializer = JobsSerializer(data=job_data)
         if job_serializer.is_valid():
             job = job_serializer.save()
             job_id = job.id
         else:
-            return JsonResponse({"status": "failed", "msg": job_serializer.errors}, status=400)
+            return response_value("failed", job_serializer.errors, "na", 400)
     except Exception as e:
-        return JsonResponse({"status": "failed", "msg": e}, status=500)
+        return response_value("failed", e, "na", 500)
 
-    if data["descFile"]!= "null":
+    # insert job description file
+    if data["descFile"] != "null":
         file_data = {}
         file_data["job_id"] = job_id
         byte_array = data["descFile"]
@@ -274,55 +336,93 @@ def post_job(request):
         if file_serializer.is_valid():
             file_serializer.save()
         else:
-            return JsonResponse({"status": "Failed", "message": serializers.errors}, status = 400)
+            Jobs.objects.filter(id=job_id).delete()
+            return response_value("failed", file_serializer.errors, "na", 400)
 
+    # insert fulltime or internship details
     if data["jobType"] == "Fulltime":
-        # fields = ("job_id", "date_range", "currency", "max_salary", "min_salary", "experience")
-        fulltime_data = {}
-        fulltime_data["job_id"] = job_id
-        fulltime_data["date_range"] = data["salaryTerm"]
-        fulltime_data["currency"] = data["salaryCurrency"]
-        fulltime_data["max_salary"] = data["maxSalary"]
-        fulltime_data["min_salary"] = data["minSalary"]
-        fulltime_data["experience"] = data["experience"]
-
         try:
+            # fields = ("job_id", "date_range", "currency", "max_salary", "min_salary", "experience")
+            fulltime_data = {}
+            fulltime_data["job_id"] = job_id
+            fulltime_data["date_range"] = data["salaryTerm"]
+            fulltime_data["currency"] = data["salaryCurrency"]
+            fulltime_data["max_salary"] = data["maxSalary"]
+            fulltime_data["min_salary"] = data["minSalary"]
+            fulltime_data["experience"] = data["experience"]
+
             fulltime_serializer = JobDetailsSerializer(data=fulltime_data)
             if fulltime_serializer.is_valid():
                 fulltime_serializer.save()
             else:
-                return JsonResponse({"status": "failed", "msg": fulltime_serializer.errors}, status=400)
+                Files.objects.filter(job_id=job_id).delete()
+                Jobs.objects.filter(id=job_id).delete()
+                return response_value("failed", fulltime_serializer.errors, "na", 400)
         except Exception as e:
-            return JsonResponse({"status": "failed", "msg": e}, status=500)
+            return response_value("failed", e, "na", 500)
     elif data["jobType"] == "Internship":
-        # fields = ("job_id", "stipend", "date_range","is_pre_placement_offer", "duration", "experience")
-        internship_data = {}
-        internship_data["job_id"] = job_id
-        internship_data["is_pre_placement_offer"] = data["isPPO"]
-        internship_data["stipend"] = data["salary"]
-        internship_data["currency"] = data["salaryCurrency"]
-        internship_data["date_range"] = data["salaryTerm"]
-        internship_data["duration"] = data["duration"]
-
         try:
+            # fields = ("job_id", "stipend", "date_range","is_pre_placement_offer", "duration", "currency")
+            internship_data = {}
+            internship_data["job_id"] = job_id
+            internship_data["is_pre_placement_offer"] = data["isPPO"]
+            internship_data["stipend"] = data["salary"]
+            internship_data["currency"] = data["salaryCurrency"]
+            internship_data["date_range"] = data["salaryTerm"]
+            internship_data["duration"] = data["duration"]
+
             intern_serializer = InternshipSerializer(data=internship_data)
             if intern_serializer.is_valid():
                 intern_serializer.save()
             else:
-                return JsonResponse({"status": "failed", "msg": intern_serializer.errors}, status=400)
+                Files.objects.filter(job_id=job_id).delete()
+                Jobs.objects.filter(id=job_id).delete()
+                return response_value("failed", intern_serializer.errors, "na", 400)
         except Exception as e:
-            return JsonResponse({"status": "failed", "msg": e}, status=500)
+            return response_value("failed", e, "na", 500)
     else:
-         return JsonResponse({"status": "failed", "msg": "Invalid Job Type"}, status=400)
+         return response_value("failed", "invalid job type", "na", 400)
+    
+    # insert job status
+    try:
+        # fields = ("job_id", "date_posted", "to_date", "status", "application_received", "company_id")
+        status_data = {}
+        status_data["job_id"] = job_id
+        status_data["date_posted"] = datetime.datetime.now()
+        # status_data["to_date"] = datetime.datetime.strptime(data["toDate"], "%d/%m/%Y %H:%M:%S")
+        status_data["to_date"] = datetime.datetime.strptime(data["openUntil"], "%d/%m/%Y")
+        status_data["status"] = "Open"
+        status_data["application_received"] = 0
+        status_data["company_id"] = data["companyId"]
 
+        status_serializer = StatusSerializer(data=status_data)
+        if status_serializer.is_valid():
+            status_serializer.save()
+        else:
+            Internship.objects.filter(job_id=job_id).delete()
+            JobDetails.objects.filter(job_id=job_id).delete()
+            Files.objects.filter(job_id=job_id).delete()
+            Jobs.objects.filter(id=job_id).delete()
+            return response_value("failed", status_serializer.errors, "na", 400)
+    except Exception as e:
+        return response_value("failed", e, "na", 500)
+
+    # insert perk details
     perk_ids = Perks.objects.filter(perk__in=data["otherPerks"]).values_list('id', flat=True)
     for pid in perk_ids:
-        addon = AddOns()
-        addon.job_id_id=job_id
-        addon.perk_id_id=pid
-        addon.save()
+        addon_data = {
+            "job_id":job_id,
+            "perk_id":pid
+        }
+        addon_serializer = AddOnsSerializer(data=addon_data)
+        if addon_serializer.is_valid():
+            addon_serializer.save()
+        # addon = AddOns()
+        # addon.job_id_id=job_id
+        # addon.perk_id_id=pid
+        # addon.save()
 
-    return JsonResponse({"status": "success", "msg":"job added successfully", "data":{"job_id":job_id}}, status=201)
+    return response_value("success", "job addded successfully", {"job_id":job_id}, "201")
 
 class CreateProfile(APIView):
     def data_validator(self, body: dict):
