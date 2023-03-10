@@ -490,7 +490,12 @@ class ProfileView(APIView):
                 company_id = uuid.uuid4()
                 #Company
                 try:
-                    company_data = {"id": company_id, "name": json_body["companyName"], "description": json_body["companyDescription"]}
+                    company_data = {"id": company_id, 
+                                    "name": json_body["companyName"], 
+                                    "description": json_body["companyDescription"],
+                                    "city": json_body["city"],
+                                    "country": json_body["country"]
+                                    }
                     company_serializer = CompanySerializer(data=company_data)
                     if company_serializer.is_valid():
                         company_serializer.save()
