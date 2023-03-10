@@ -56,7 +56,9 @@ class Internship(Model):
 
 class Company(Model):
     name = models.CharField(max_length = 100, unique=True)
-    description = models.CharField(max_length = 300)
+    description = models.CharField(max_length = 400)
+    city = models.CharField(max_length = 200)
+    country = models.CharField(max_length = 200)
     
     def __str__(self) -> str:
         return "companyId: "+str(self.id)
@@ -64,7 +66,6 @@ class Company(Model):
 class Sector(Model):
     # sector_id = models.UUIDField(primary_key = True)
     industry = models.CharField(max_length = 100)
-    department = models.CharField(max_length = 100)
     
     def __str__(self) -> str:
         return "sectorId: "+str(self.id)

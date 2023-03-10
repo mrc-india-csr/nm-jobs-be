@@ -4,10 +4,12 @@ from rest_framework.views import APIView
 from rest_framework.parsers import JSONParser 
 from django.http import JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.utils import OperationalError
 from drf_yasg.utils import swagger_auto_schema
 from .models import *
 from nm_jobs.serializers import *
 from nm_jobs.serializers import *
+from django.db import connection
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO, datefmt='%d-%b-%y %H:%M:%S')
 logger = logging.getLogger("Naan_Muthalvan_logger")
@@ -87,8 +89,6 @@ class JobsView(APIView):
                     dict(zip([col[0] for col in desc], row)) 
                     for row in cursor.fetchall() 
                     ]
-
-        from django.db import connection
         with connection.cursor() as cursor:
             fulltime_query = """
                 select 
@@ -424,7 +424,44 @@ def post_job(request):
 
     return response_value("success", "job addded successfully", {"job_id":job_id}, "201")
 
-class CreateProfile(APIView):
+class ProfileView(APIView):
+    def get(self, request, company_name):
+        try:
+            company_get_query = """
+                SELECT c.id, c.name, c.description, c.city, c.country, s.name, s.phone_no, s.email, cs.sector_id_id
+                FROM nm_jobs_company AS c
+                INNER JOIN nm_jobs_spoc AS s ON c.id = s.company_id_id
+                INNER JOIN nm_jobs_companysector AS cs ON c.id = cs.company_id_id
+                WHERE c.name = "%s"
+            """ %(company_name)
+
+            cursor = connection.cursor()
+            try:
+                cursor.execute(company_get_query)
+                company_data = cursor.fetchone()
+            except OperationalError:
+                return response_value("Failed", "Something wrong with given company name", "NA", 400)
+            if company_data==None:
+                return response_value("Failed", "Company not found", "NA", 404)
+            sector_data = Sector.objects.get(id=company_data[8])
+            profile_data  = CompanyDetails.objects.get(company_id = company_data[0])
+            profile_byte_arr = list(profile_data.image)
+            company_obj = {
+                "companyID": company_data[0],
+                "companyName": company_data[1],
+                "companyDescription": company_data[2],
+                "city": company_data[3],
+                "country": company_data[4],
+                "contactName": company_data[5],
+                "contactPhone": company_data[6],
+                "contactEmail": company_data[7],
+                "sector": sector_data.industry,
+                "profileImage": profile_byte_arr,
+            }
+            return JsonResponse({"data": company_obj})
+        except Exception as e:
+            return response_value("Failed", "Unexpected error"+ e.__class__.__name__,"NA", 500)
+
     def data_validator(self, body: dict):
         all_good = True
         message = "success"
@@ -501,7 +538,7 @@ class CreateProfile(APIView):
                 try: 
                     sector_name = json_body["sector"]
                     try:
-                        sector_data = Sector.objects.get(department= sector_name)
+                        sector_data = Sector.objects.get(industry= sector_name)
                     except ObjectDoesNotExist:
                         self.delete_company(company_id)
                         return JsonResponse({"status": "failed", "message": "sector '"+sector_name + "' does not exist"}, status = 400)
