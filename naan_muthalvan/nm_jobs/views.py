@@ -466,10 +466,13 @@ class ProfileView(APIView):
         all_good = True
         message = "success"
         list_of_fields = ["companyName", "companyDescription", "sector", "country", "city", "contactName", "contactEmail", "contactPhone", "profileImage"]
+        if body["profileImage"].__class__.__name__ != 'list':
+            all_good = False
+            message = "image cannot be other than array"
         for field in list_of_fields:
             if field not in body.keys():
                 all_good = False
-                message = field+ " is missing"
+                message += field+ " is missing"
                 break
         return [all_good, message]
     
@@ -561,13 +564,71 @@ class ProfileView(APIView):
                     self.delete_company(company_id)
                     return JsonResponse({"status": "failed", "message": "Exception occured while creating company sectors", "error": e.__class__.__name__}, status = 500)
             
-                return JsonResponse({"status": "success", "message": {"company_id" : company_id}})
+                return JsonResponse({"status": "success", "message": {"company_id" : company_id}}, status = 201)
             else:
                 return JsonResponse({"status": "failed", "msg": validator[1]}, status=422)
                 
         except Exception as e:
             logger.error(e)
             return JsonResponse({"status": "failed", "msg": "internal server error", "error": e.__class__.__name__}, status=500)
+
+    def put(self, request, company_id):
+        json_body = JSONParser().parse(request)
+        # Tables to interact: company, companyDetails, spoc, company sectors
+        company_data = Company.objects.get(id = company_id)
+        company_image_data = CompanyDetails.objects.get(company_id = company_id)
+        spoc_data = Spoc.objects.get(company_id = company_id)
+        company_sector_data = CompanySector.objects.get(company_id = company_id)
+        
+        validator = self.data_validator(json_body)
+        if validator[0]:
+            #company
+            replaced_company_data ={"id": company_id, 
+                "name": json_body["companyName"], 
+                "description": json_body["companyDescription"],
+                "city": json_body["city"],
+                "country": json_body["country"]
+                }
+            company_ser = CompanySerializer(company_data, replaced_company_data)
+            #company image
+            replaced_company_image_data = {"company_id": company_id, "file_name": json_body["companyName"], "image": bytes(json_body["profileImage"])}
+            company_img_ser = CompanyDetailsSerializer(company_image_data, replaced_company_image_data)
+            #spoc
+            replaced_spoc_data = {
+                                "name": json_body["contactName"],
+                                "email": json_body["contactEmail"], 
+                                "phone_no": json_body["contactPhone"],
+                                "company_id": company_id
+                            }
+            spoc_ser = SpocSerializer(spoc_data, replaced_spoc_data)
+            #company sector
+            sector_name = json_body["sector"]
+            try:
+                sector_data = Sector.objects.get(industry= sector_name)
+            except ObjectDoesNotExist:
+                return JsonResponse({"status": "failed", "message": "sector '"+sector_name + "' does not exist"}, status = 400)
+            sector_id = sector_data.id
+            replaced_company_sector_data = {"company_id": company_id, "sector_id": sector_id}
+            company_sector_ser = CompanySectorSerializer(company_sector_data, replaced_company_sector_data)
+            
+            if company_ser.is_valid() and company_img_ser.is_valid() and company_sector_ser.is_valid() and spoc_ser.is_valid():
+                company_ser.save()
+                company_img_ser.save()
+                spoc_ser.save()
+                company_sector_ser.save()
+                logger.error("errors", company_ser.errors, company_img_ser.errors, spoc_ser.errors, company_sector_ser.errors)
+                return response_value("Success", "profile updated successfully", {"company_id": company_id}, 200)
+            
+            else:
+                value1 = company_ser.is_valid() 
+                value2 = company_img_ser.is_valid()
+                value3 = company_sector_ser.is_valid()
+                value4 = spoc_ser.is_valid()
+                return response_value("Failed", {**dict(company_ser.errors), **dict(company_img_ser.errors), **dict(spoc_ser.errors), ** dict(company_sector_ser.errors)}, "NA", 422)
+
+        else:
+            return JsonResponse({"status": "failed", "msg": validator[1]}, status=422)
+
 
 class JobFilesView(APIView):
     def get(self, request):

@@ -65,7 +65,7 @@ class Company(Model):
 
 class Sector(Model):
     # sector_id = models.UUIDField(primary_key = True)
-    industry = models.CharField(max_length = 100)
+    industry = models.CharField(max_length = 100, unique=True)
     
     def __str__(self) -> str:
         return "sectorId: "+str(self.id)

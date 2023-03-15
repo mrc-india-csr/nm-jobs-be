@@ -11,6 +11,7 @@ urlpatterns = [
     re_path(r'^company/?$', CompanyView.as_view()),
     re_path(r'^profile/?$', ProfileView.as_view()),
     path('get_profile/<str:company_name>/', ProfileView.as_view()),
+    path('update_profile/<str:company_id>/', ProfileView.as_view()),
     re_path(r'^image/?$', StoreImg.as_view()),
     re_path(r'^job_files/?$', JobFilesView.as_view()),
     re_path(r'^company_files/?$', CompanyImageView.as_view()),
