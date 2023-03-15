@@ -616,7 +616,6 @@ class ProfileView(APIView):
                 company_img_ser.save()
                 spoc_ser.save()
                 company_sector_ser.save()
-                logger.error("errors", company_ser.errors, company_img_ser.errors, spoc_ser.errors, company_sector_ser.errors)
                 return response_value("Success", "profile updated successfully", {"company_id": company_id}, 200)
             
             else:
